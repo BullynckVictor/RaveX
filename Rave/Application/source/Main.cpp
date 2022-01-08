@@ -1,8 +1,13 @@
 #include <iostream>
-#include "Engine/Core/Main.h"
+#include "Engine/Rave.h"
+#include <memory>
 
-int main()
+rv::Result rv_main()
 {
 	std::cout << "Hello world!\n";
+	std::cout << std::boolalpha;
+
 	std::cin.ignore();
+
+	return rv::success;
 }

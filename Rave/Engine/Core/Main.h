@@ -1,6 +1,4 @@
 #pragma once
+#include "Engine/Utility/Result.h"
 
-namespace rv
-{
-	extern void main();
-}
+extern rv::Result rv_main();
