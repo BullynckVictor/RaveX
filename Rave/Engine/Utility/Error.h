@@ -13,6 +13,8 @@ namespace rv
 		void RegisterResult(const Identifier32& result);
 		const char* GetResultName(const Result& result);
 
+		void LogResult(const Result& result);
+
 		void Clear();
 
 	private:

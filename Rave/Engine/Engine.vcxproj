@@ -161,6 +161,7 @@
   <ItemGroup>
     <ClCompile Include="Core\source\Main.cpp" />
     <ClCompile Include="Utility\source\Error.cpp" />
+    <ClCompile Include="Utility\source\TimeStamp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Main.h" />
@@ -173,6 +174,7 @@
     <ClInclude Include="Utility\Identifier.h" />
     <ClInclude Include="Utility\Result.h" />
     <ClInclude Include="Utility\source\Result.cpp" />
+    <ClInclude Include="Utility\TimeStamp.h" />
     <ClInclude Include="Utility\Types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
