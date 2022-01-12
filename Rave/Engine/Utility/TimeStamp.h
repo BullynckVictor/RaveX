@@ -18,8 +18,6 @@ namespace rv
 		const std::chrono::time_zone* m_zone;
 	};
 
-
-
 	class TimeStamp
 	{
 	public:

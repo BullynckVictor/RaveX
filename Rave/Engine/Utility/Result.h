@@ -9,29 +9,25 @@ namespace rv
 {
 	enum Severity
 	{
+		RV_SEVERITY_NULL	= 0,
 		RV_SEVERITY_INFO	= make_flag<Severity>(0),
 		RV_SEVERITY_WARNING = make_flag<Severity>(1),
 		RV_SEVERITY_ERROR	= make_flag<Severity>(2),
+		RV_SEVERITY_ALL		= RV_SEVERITY_INFO | RV_SEVERITY_WARNING | RV_SEVERITY_ERROR,
 	};
 	
 	static constexpr const char* to_string(Severity severity)
 	{
 		switch (severity)
 		{
+			case RV_SEVERITY_NULL:		return "Null";
 			case RV_SEVERITY_INFO:		return "Info";
 			case RV_SEVERITY_WARNING:	return "Warning";
 			case RV_SEVERITY_ERROR:		return "Error";
+			case RV_SEVERITY_ALL:		return "Info - Warning - Error";
 			default:					return nullptr;
 		}
 	}
-
-	struct ResultInfo
-	{
-		virtual ~ResultInfo() = default;
-		virtual ResultInfo& operator= (const ResultInfo& rhs) = default;
-
-		Identifier type;
-	};
 
 	static constexpr Identifier32 global_result = "Global Result";
 
@@ -55,6 +51,7 @@ namespace rv
 		void expect(const char* message);
 		void expect(Flags<Severity> success = make_flags<Severity>(RV_SEVERITY_INFO));
 		void expect(Flags<Severity> success, const char* message);
+		void expect(Flags<Severity> success, const std::string& message);
 
 	private:
 		u32 code;
