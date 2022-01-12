@@ -32,6 +32,7 @@ void message_box(const char* title, const char* message, uint icon = MB_ICONERRO
 {
 	int response = MessageBox(nullptr, message, title, icon | MB_RETRYCANCEL);
 
+	if constexpr (resultHandler.enabled)
 	if (response == IDRETRY)
 	{
 		std::stringstream ss;

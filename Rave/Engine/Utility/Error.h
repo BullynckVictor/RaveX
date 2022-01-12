@@ -1,10 +1,17 @@
 #pragma once
 #include "Engine/Utility/Result.h"
 #include "Engine/Utility/Queue.h"
+#include "Engine/Core/Build.h"
 #include <exception>
 #include <sstream>
 #include <map>
 #include <mutex>
+
+#ifndef RV_LOG_RESULTS
+#if defined(RV_DEBUG) and not defined(RV_NO_LOG_RESULTS)
+#define RV_LOG_RESULTS
+#endif
+#endif
 
 namespace rv
 {
@@ -109,6 +116,12 @@ namespace rv
 
 		void Clear();
 
+#		ifdef RV_LOG_RESULTS
+		static constexpr bool enabled = true;
+#		else
+		static constexpr bool enabled = false;
+#		endif
+
 	private:
 		std::map<u32, const char*> nameMap;
 		std::mutex nameMutex;
@@ -135,6 +148,4 @@ namespace rv
 	};
 
 	extern ResultHandler resultHandler;
-
-
 }

@@ -38,14 +38,14 @@ namespace rv
 		}
 
 		template<typename D>
-		void PushEntry(I&& info, const D& data)
+		void PushEntry(const I& info, const D& data)
 		{
-			PushHeader(&(new Entry<D>(std::move(info), data))->header);
+			PushHeader(&(new Entry<D>(info, data))->header);
 		}
 		template<typename D>
-		void PushEntry(I&& info, D&& data)
+		void PushEntry(const I& info, D&& data)
 		{
-			PushHeader(&(new Entry<D>(std::move(info), std::move(data)))->header);
+			PushHeader(&(new Entry<D>(info, std::move(data)))->header);
 		}
 		void PushEntry(const I& info)
 		{
@@ -106,21 +106,21 @@ namespace rv
 		struct Entry
 		{
 			Entry() = default;
-			Entry(I&& info, const D& data)
+			Entry(const I& info, const D& data)
 				:
 				data(data)
 			{
-				header.info = std::move(info);
+				header.info = info;
 				header.type = typeid(D).hash_code();
 				header.dataOffset = offsetof(Entry<D>, data);
 				if constexpr (std::is_class_v<D>)
 					header.destructor = make_destructor<D>;
 			}
-			Entry(I&& info, D&& data)
+			Entry(const I& info, D&& data)
 				:
 				data(std::move(data))
 			{
-				header.info = std::move(info);
+				header.info = info;
 				header.type = typeid(D).hash_code();
 				header.dataOffset = offsetof(Entry<D>, data);
 				if constexpr (std::is_class_v<D>)

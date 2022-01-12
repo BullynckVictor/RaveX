@@ -32,12 +32,12 @@ int rv::TimeStamp::minutes() const
 	return hms.minutes().count();
 }
 
-int rv::TimeStamp::seconds() const
+long long rv::TimeStamp::seconds() const
 {
 	return hms.seconds().count();
 }
 
-int rv::TimeStamp::milliseconds() const
+long long  rv::TimeStamp::milliseconds() const
 {
 	return hms.subseconds().count();
 }

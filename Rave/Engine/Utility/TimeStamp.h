@@ -28,8 +28,8 @@ namespace rv
 		unsigned int day() const;
 				 int hours() const;
 				 int minutes() const;
-				 int seconds() const;
-				 int milliseconds() const;
+		   long long seconds() const;
+		   long long milliseconds() const;
 
 		void Reset(const TimeZone& zone = TimeZone());
 

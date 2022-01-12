@@ -29,6 +29,8 @@ void rv::EventListener::StopListening()
 
 rv::Event rv::EventListener::GetEvent()
 {
+	if (!events)
+		return nullptr;
 	std::lock_guard guard(events->mutex);
 	return events->queue.GetHeader();
 }

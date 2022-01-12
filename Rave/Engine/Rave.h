@@ -10,3 +10,4 @@
 #include "Engine/Utility/Error.h"
 #include "Engine/Utility/TimeStamp.h"
 #include "Engine/Utility/Event.h"
+#include "Engine/Utility/Logger.h"

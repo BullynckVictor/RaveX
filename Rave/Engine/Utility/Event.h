@@ -1,8 +1,6 @@
 #pragma once
 #include "Engine/Utility/Types.h"
 #include "Engine/Utility/Queue.h"
-#include "Engine/Utility/TimeStamp.h"
-#include "Engine/Utility/Result.h"
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -12,6 +10,7 @@ namespace rv
 	struct EventQueue
 	{
 		EventQueue() = default;
+
 		Queue<EmptyInfo> queue;
 		std::mutex mutex;
 	};
@@ -32,21 +31,6 @@ namespace rv
 				}
 				std::lock_guard guard(listener->mutex);
 				listener->queue.PushEntry(EmptyInfo(), event);
-			}
-		}
-		template<typename E>
-		void PostEvent(E&& event)
-		{
-			std::lock_guard global_guard(mutex);			
-			for (auto& listener : listeners)
-			{
-				if (listener.use_count() == 1)
-				{
-					listener.reset();
-					continue;
-				}
-				std::lock_guard guard(listener->mutex);
-				listener->queue.PushEntry(EmptyInfo(), std::move(event));
 			}
 		}
 
