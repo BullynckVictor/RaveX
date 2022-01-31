@@ -1,151 +1,76 @@
 #pragma once
 #include "Engine/Utility/Result.h"
-#include "Engine/Utility/Queue.h"
-#include "Engine/Core/Build.h"
-#include <exception>
-#include <sstream>
-#include <map>
-#include <mutex>
-
-#ifndef RV_LOG_RESULTS
-#if defined(RV_DEBUG) and not defined(RV_NO_LOG_RESULTS)
-#define RV_LOG_RESULTS
-#endif
-#endif
+#include "Engine/Utility/File.h"
+#include "Engine/Core/Windows.h"
 
 namespace rv
 {
-	template<typename I>
-	concept ResultInfoType = requires(I info) { info.Describe(); };
-
-	class ResultQueue
+	struct ErrorInfo
 	{
-	public:
-		ResultQueue() = default;
-		ResultQueue(const ResultQueue&) = delete;
-		ResultQueue(ResultQueue&& rhs) noexcept;
+		ErrorInfo() = default;
+		ErrorInfo(const char* source, uint64 line);
 
-		ResultQueue& operator= (const ResultQueue&) = delete;
-		ResultQueue& operator= (ResultQueue&& rhs) noexcept;
-
-		struct ResultInfo
-		{
-			ResultInfo() = default;
-			Result result;
-			std::string message;
-			std::string info;
-		};
-
-		template<typename I>
-		void PushResult(Result result, std::string&& message, const I& info)
-		{
-			ResultInfo r;
-			r.message = std::move(message);
-			r.result = result;
-			if constexpr (ResultInfoType<I>)
-				r.info = info.Describe();
-			queue.PushEntry(std::move(r), info);
-		}
-		template<typename I>
-		void PushResult(Result result, std::string&& message, I&& info)
-		{
-			ResultInfo r;
-			r.message = std::move(message);
-			r.result = result;
-			if constexpr (ResultInfoType<I>)
-				r.info = info.Describe();
-			queue.PushEntry(std::move(r), std::move(info));
-		}
-
-		void PushResult(Result result, std::string&& message);
-
-		Queue<ResultInfo>::Header* GetResult(Flags<Severity> severity = RV_SEVERITY_ALL);
-
-	private:
-		Queue<ResultInfo> queue;
-
-		friend struct ResultInfo;
+		std::string Describe() const;
+		
+		const char* source = nullptr;
+		uint64 line = 0;
 	};
 
-	struct ResultInfo
+	struct ConditionInfo : public ErrorInfo
 	{
-	public:
-		ResultInfo() = default;
-		ResultInfo(Queue<ResultQueue::ResultInfo>::Header* header);
-		ResultInfo(const ResultInfo&) = delete;
-		ResultInfo(ResultInfo&& rhs) noexcept;
-		~ResultInfo();
+		ConditionInfo() = default;
+		ConditionInfo(bool condition, const char* name, const char* source, uint64 line);
 
-		ResultInfo& operator= (const ResultInfo&) = delete;
-		ResultInfo& operator= (ResultInfo&& rhs) noexcept;
+		std::string Describe() const;
 
-		operator bool() const;
-
-		bool valid() const;
-		bool invalid() const;
-
-		Result& result();
-		const Result& result() const;
-
-		std::string& message();
-		const std::string& message() const;
-
-		std::string& description();
-		const std::string& description() const;
-
-		template<typename I>
-		bool is_type() const { return header ? (header->type == typeid(I).hash_code()) : false; }
-
-		template<typename I>
-		I& info() { return *header->data<I>(); }
-		template<typename I>
-		const I& info() const { return *header->data<I>(); }
-
-	private:
-		Queue<ResultQueue::ResultInfo>::Header* header = nullptr;
+		bool condition;
+		const char* name;
 	};
 
-	class ResultHandler
+	struct FileInfo : public ErrorInfo
 	{
-	public:
-		void RegisterResult(const Identifier32& result);
-		const char* GetResultName(const Result& result);
+		FileInfo() = default;
+		FileInfo(const std::filesystem::path& file, const char* source, uint64 line);
+		FileInfo(std::filesystem::path&& file, const char* source, uint64 line);
 
-		ResultQueue& GetThreadQueue();
-		std::vector<std::reference_wrapper<std::pair<const std::thread::id, ResultQueue>>> GetQueues();
+		std::string Describe() const;
 
-		void Clear();
-
-#		ifdef RV_LOG_RESULTS
-		static constexpr bool enabled = true;
-#		else
-		static constexpr bool enabled = false;
-#		endif
-
-	private:
-		std::map<u32, const char*> nameMap;
-		std::mutex nameMutex;
-
-		std::map<std::thread::id, ResultQueue> queueMap;
-		std::mutex queueMutex;
+		std::filesystem::path file;
 	};
 
-	class ResultException : public std::exception
+	struct HrInfo : public ErrorInfo
 	{
-	public:
-		ResultException() = default;
-		ResultException(const Result& result);
-		ResultException(const Result& result, const std::string& message);
+		HrInfo() = default;
+		HrInfo(HRESULT result, const char* source, uint64 line);
 
-		const char* what() const override;
-		const Result& result() const;
+		std::string Describe() const;
 
-	private:
-		void Format(std::stringstream& ss);
-
-		Result m_result;
-		std::string m_message;
+		HRESULT result;
 	};
 
-	extern ResultHandler resultHandler;
+	static constexpr Identifier32 condition_result	= "Condition Result";
+	static constexpr Identifier32 assertion_result	= "Assertion Result";
+	static constexpr Identifier32 file_result		= "Assertion Result";
+
+
+	static constexpr Result succeeded_condition		= Result(RV_SEVERITY_INFO, condition_result);
+	static constexpr Result succeeded_assertion		= Result(RV_SEVERITY_INFO, condition_result);
+	static constexpr Result succeeded_file			= Result(RV_SEVERITY_INFO, file_result);
+
+	static constexpr Result failed_condition		= Result(RV_SEVERITY_ERROR, condition_result);
+	static constexpr Result failed_assertion		= Result(RV_SEVERITY_ERROR, assertion_result);
+	static constexpr Result failed_file				= Result(RV_SEVERITY_ERROR, file_result);
+
+
+	Result check_condition(bool condition, const char* name, const char* source, uint64 line, const char* message = nullptr);
+	Result check_condition(bool condition, const char* name, const char* source, uint64 line, std::string&& message);
+
+	Result check_assertion(bool assertion, const char* name, const char* source, uint64 line, const char* message = nullptr);
+	Result check_assertion(bool assertion, const char* name, const char* source, uint64 line, std::string&& message);
+
+	Result check_file(const std::filesystem::path& path, const char* source, uint64 line, const char* message = nullptr);
+	Result check_file(const std::filesystem::path& path, const char* source, uint64 line, std::string&& message);
+
+	Result check_hr(HRESULT hr, const char* source, uint64 line, const char* message = nullptr);
+	Result check_hr(HRESULT hr, const char* source, uint64 line, std::string&& message);
 }

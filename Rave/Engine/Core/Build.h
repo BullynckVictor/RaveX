@@ -1,4 +1,5 @@
 #pragma once
+#include <bit>
 
 #ifdef NDEBUG
 #define RV_RELEASE
@@ -31,5 +32,9 @@ namespace rv
 		static constexpr bool x86 = false;
 		static constexpr bool x64 = true;
 #endif
+
+		static constexpr std::endian endianness = std::endian::native;
+		static constexpr bool big_endian = endianness == std::endian::big;
+		static constexpr bool little_endian = endianness == std::endian::little;
 	} build;
 }

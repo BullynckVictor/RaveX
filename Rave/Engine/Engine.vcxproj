@@ -159,14 +159,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Audio\source\AudioEngine.cpp" />
+    <ClCompile Include="Core\source\Engine.cpp" />
     <ClCompile Include="Core\source\Main.cpp" />
+    <ClCompile Include="Utility\source\File.cpp" />
     <ClCompile Include="Utility\source\Logger.cpp" />
     <ClCompile Include="Utility\source\Error.cpp" />
     <ClCompile Include="Utility\source\Event.cpp" />
+    <ClCompile Include="Utility\source\ResultHandler.cpp" />
+    <ClCompile Include="Utility\source\String.cpp" />
     <ClCompile Include="Utility\source\TimeStamp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Audio\AudioEngine.h" />
     <ClInclude Include="Core\Build.h" />
+    <ClInclude Include="Core\Engine.h" />
     <ClInclude Include="Core\Main.h" />
     <ClInclude Include="Core\Window.h" />
     <ClInclude Include="Core\Windows.h" />
@@ -174,16 +181,20 @@
     <ClInclude Include="Utility\Concepts.h" />
     <ClInclude Include="Utility\Error.h" />
     <ClInclude Include="Utility\Event.h" />
+    <ClInclude Include="Utility\File.h" />
     <ClInclude Include="Utility\Flags.h" />
     <ClInclude Include="Utility\Hash.h" />
     <ClInclude Include="Utility\Identifier.h" />
     <ClInclude Include="Utility\Logger.h" />
     <ClInclude Include="Utility\Queue.h" />
     <ClInclude Include="Utility\Result.h" />
+    <ClInclude Include="Utility\ResultHandler.h" />
+    <ClInclude Include="Utility\Safety.h" />
     <ClInclude Include="Utility\source\Result.cpp" />
     <ClInclude Include="Utility\String.h" />
     <ClInclude Include="Utility\TimeStamp.h" />
     <ClInclude Include="Utility\Types.h" />
+    <ClInclude Include="Utility\Unicode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

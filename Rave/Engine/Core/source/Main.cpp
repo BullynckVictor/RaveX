@@ -2,6 +2,7 @@
 #include "Engine/Core/Windows.h"
 #include "Engine/Utility/Error.h"
 #include "Engine/Utility/Types.h"
+#include "Engine/Utility/ResultHandler.h"
 
 using namespace rv;
 

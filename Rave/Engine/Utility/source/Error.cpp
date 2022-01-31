@@ -1,189 +1,152 @@
 #include "Engine/Utility/Error.h"
+#include "Engine/Utility/ResultHandler.h"
+#include "Engine/Utility/String.h"
+#include "Engine/Utility/File.h"
+#include <comdef.h>
 
-rv::ResultHandler rv::resultHandler;
-
-rv::ResultException::ResultException(const Result& result)
+rv::ErrorInfo::ErrorInfo(const char* source, uint64 line)
 	:
-	m_result(result)
+	source(source),
+	line(line)
 {
-	std::stringstream ss;
-	Format(ss);
-	m_message = ss.str();
 }
 
-rv::ResultException::ResultException(const Result& result, const std::string& message)
+std::string rv::ErrorInfo::Describe() const
+{
+	return str(
+		"File:\t", RelativeToSolution(source), '\n',
+		"Line:\t", line, '\n'
+	);
+}
+
+rv::ConditionInfo::ConditionInfo(bool condition, const char* name, const char* source, uint64 line)
 	:
-	m_result(result)
+	ErrorInfo(source, line),
+	condition(condition),
+	name(name)
 {
-	std::stringstream ss;
-	Format(ss);
-	ss << "\n\n" << "Message: " << message;
-	m_message = ss.str();
 }
 
-const char* rv::ResultException::what() const
+std::string rv::ConditionInfo::Describe() const
 {
-	return m_message.c_str();
+	return str(
+		ErrorInfo::Describe(),
+		"Condition \"", name, condition ? "\" succeeded\n" : "\" failed\n"
+	);
 }
 
-const rv::Result& rv::ResultException::result() const
+rv::FileInfo::FileInfo(const std::filesystem::path& file, const char* source, uint64 line)
+	:
+	ErrorInfo(source, line),
+	file(file)
 {
-	return m_result;
 }
 
-void rv::ResultException::Format(std::stringstream& ss)
+rv::FileInfo::FileInfo(std::filesystem::path&& file, const char* source, uint64 line)
+	:
+	ErrorInfo(source, line),
+	file(std::move(file))
 {
-	const char* name = resultHandler.GetResultName(m_result);
-	if (!name)
-		name = "Unknown";
-
-	ss << "Result Exception occurred!\n\n";
-	ss << "Type: " << name << '\n';
-	ss << "Severity: " << to_string(m_result.severity());
 }
 
-void rv::ResultHandler::RegisterResult(const Identifier32& result)
+std::string rv::FileInfo::Describe() const
 {
-	std::lock_guard guard(nameMutex);
-	nameMap[result.hash() & ~0b111] = result.name();
+	return str(
+		ErrorInfo::Describe(),
+		"Failed to open file ", file, '\n'
+	);
 }
 
-const char* rv::ResultHandler::GetResultName(const Result& result)
+rv::HrInfo::HrInfo(HRESULT result, const char* source, uint64 line)
+	:
+	ErrorInfo(source, line),
+	result(result)
 {
-	std::lock_guard guard(nameMutex);
-	u32 key = result.data() & ~0b111;
-	return nameMap[key];
 }
 
-rv::ResultQueue& rv::ResultHandler::GetThreadQueue()
+std::string rv::HrInfo::Describe() const
 {
-	std::lock_guard guard(queueMutex);
-	return queueMap[std::this_thread::get_id()];
+	/*
+	return str(
+		ErrorInfo::Describe(),
+		"Result:\t", std::hex, result, '\n',
+		_com_error(result).Source().GetBSTR()
+	);
+	*/ return {};
 }
 
-std::vector<std::reference_wrapper<std::pair<const std::thread::id, rv::ResultQueue>>> rv::ResultHandler::GetQueues()
+rv::Result rv::check_condition(bool condition, const char* name, const char* source, uint64 line, const char* message)
 {
-	std::lock_guard guard(queueMutex);
-	std::vector<std::reference_wrapper<std::pair<const std::thread::id, ResultQueue>>> queues;
-	queues.reserve(queueMap.size());
-	for (auto& queue : queueMap)
-		queues.emplace_back(queue);
-	return queues;
+	if (condition)
+		return succeeded_condition;
+
+	if constexpr (resultHandler.enabled)
+		resultHandler.GetThreadQueue().PushResult(failed_condition, message, ConditionInfo(condition, name, source, line));
+	
+	return failed_condition;
 }
 
-void rv::ResultHandler::Clear()
+rv::Result rv::check_condition(bool condition, const char* name, const char* source, uint64 line, std::string&& message)
 {
+	if (condition)
+		return succeeded_condition;
+
+	if constexpr (resultHandler.enabled)
+		resultHandler.GetThreadQueue().PushResult(failed_condition, std::move(message), ConditionInfo(condition, name, source, line));
+
+	return failed_condition;
+}
+
+rv::Result rv::check_assertion(bool assertion, const char* name, const char* source, uint64 line, const char* message)
+{
+	if constexpr (build.debug)
 	{
-		std::lock_guard guard(nameMutex);
-		nameMap.clear();
+		if (assertion)
+			return succeeded_assertion;
+
+		if constexpr (resultHandler.enabled)
+			resultHandler.GetThreadQueue().PushResult(failed_assertion, message, ConditionInfo(assertion, name, source, line));
+
+		return failed_assertion;
 	}
+	else
+		return succeeded_assertion;
+}
+
+rv::Result rv::check_assertion(bool assertion, const char* name, const char* source, uint64 line, std::string&& message)
+{
+	if constexpr (build.debug)
 	{
-		std::lock_guard guard(queueMutex);
-		queueMap.clear();
+		if (assertion)
+			return succeeded_assertion;
+
+		if constexpr (resultHandler.enabled)
+			resultHandler.GetThreadQueue().PushResult(failed_assertion, std::move(message), ConditionInfo(assertion, name, source, line));
+
+		return failed_assertion;
 	}
+	else
+		return succeeded_assertion;
 }
 
-bool check(rv::Queue<rv::ResultQueue::ResultInfo>::Header* header, const rv::Flags<rv::Severity>& severity)
+rv::Result rv::check_file(const std::filesystem::path& path, const char* source, uint64 line, const char* message)
 {
-	return severity.contains(header->info.result.severity());
+	if (FileExists(path))
+		return succeeded_file;
+
+	if constexpr (resultHandler.enabled)
+		resultHandler.GetThreadQueue().PushResult(failed_file, message, FileInfo(path, source, line));
+
+	return failed_file;
 }
 
-rv::ResultQueue::ResultQueue(ResultQueue&& rhs) noexcept
-	:
-	queue(std::move(rhs.queue))
+rv::Result rv::check_file(const std::filesystem::path& path, const char* source, uint64 line, std::string&& message)
 {
-}
+	if (FileExists(path))
+		return succeeded_file;
 
-rv::ResultQueue& rv::ResultQueue::operator=(ResultQueue&& rhs) noexcept
-{
-	queue = std::move(rhs.queue);
-	return *this;
-}
+	if constexpr (resultHandler.enabled)
+		resultHandler.GetThreadQueue().PushResult(failed_file, std::move(message), FileInfo(path, source, line));
 
-void rv::ResultQueue::PushResult(Result result, std::string&& message)
-{
-	ResultInfo r;
-	r.message = std::move(message);
-	r.result = result;
-	queue.PushEntry(std::move(r));
-}
-
-rv::Queue<rv::ResultQueue::ResultInfo>::Header* rv::ResultQueue::GetResult(Flags<Severity> severity)
-{
-	return queue.GetHeader(check, severity);
-}
-
-rv::ResultInfo::ResultInfo(Queue<ResultQueue::ResultInfo>::Header* header)
-	:
-	header(header)
-{
-	header->prev = nullptr;
-	header->next = nullptr;
-}
-
-rv::ResultInfo::ResultInfo(ResultInfo&& rhs) noexcept
-	:
-	header(rhs.header)
-{
-	rhs.header = nullptr;
-}
-
-rv::ResultInfo::~ResultInfo()
-{
-	if (valid())
-		delete header;
-}
-
-rv::ResultInfo::operator bool() const
-{
-	return valid();
-}
-
-rv::ResultInfo& rv::ResultInfo::operator=(ResultInfo&& rhs) noexcept
-{
-	if (valid())
-		delete header;
-	header = rhs.header;
-	rhs.header = nullptr;
-	return *this;
-}
-
-bool rv::ResultInfo::valid() const
-{
-	return header;
-}
-
-bool rv::ResultInfo::invalid() const
-{
-	return !valid();
-}
-
-rv::Result& rv::ResultInfo::result()
-{
-	return header->info.result;
-}
-
-const rv::Result& rv::ResultInfo::result() const
-{
-	return header->info.result;
-}
-
-std::string& rv::ResultInfo::message()
-{
-	return header->info.message;
-}
-
-const std::string& rv::ResultInfo::message() const
-{
-	return header->info.message;
-}
-
-std::string& rv::ResultInfo::description()
-{
-	return header->info.info;
-}
-
-const std::string& rv::ResultInfo::description() const
-{
-	return header->info.info;
+	return failed_file;
 }
