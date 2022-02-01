@@ -222,6 +222,7 @@ namespace rv
 	struct encoded_iterator<char8_t> : public encoded_iterator_base<char8_t>
 	{
 		constexpr encoded_iterator() : encoded_iterator_base(), size(0) {}
+		constexpr encoded_iterator(std::nullptr_t) : encoded_iterator_base(), size(0) {}
 		template<encoding::SameCharacterType<char8_t> C2>	constexpr encoded_iterator(const C2* string) : encoded_iterator_base(string), size(0) {}
 		template<>											constexpr encoded_iterator(const char8_t* string) : encoded_iterator_base(string), size(0) {}
 
@@ -396,6 +397,7 @@ namespace rv
 	struct encoded_iterator<char16_t> : public encoded_iterator_base<char16_t>
 	{
 		constexpr encoded_iterator() : encoded_iterator_base(), size(0), endianness(build.endianness) {}
+		constexpr encoded_iterator(std::nullptr_t) : encoded_iterator_base(), size(0), endianness(build.endianness) {}
 		template<encoding::SameCharacterType<char16_t> C2>	constexpr encoded_iterator(const C2* string) : encoded_iterator_base(string), size(0), endianness(build.endianness) {}
 		template<>											constexpr encoded_iterator(const char16_t* string) : encoded_iterator_base(string), size(0), endianness(build.endianness) {}
 
@@ -570,7 +572,8 @@ namespace rv
 				else if (W1 >= 0xD800 && W1 <= 0xDBFF && W2 >= 0xDC00 && W2 <= 0xDFFF)
 					string += 2;
 
-				return false;
+				else
+					return false;
 			}
 
 			return true;
@@ -604,6 +607,7 @@ namespace rv
 	{
 	public:
 		constexpr encoded_cstring() : string(nullptr) {}
+		constexpr encoded_cstring(std::nullptr_t) : string(nullptr) {}
 		template<encoding::SameCharacterType<C> C2>	constexpr encoded_cstring(const C2* string) : string(reinterpret_cast<const C*>(string)) {}
 		template<>									constexpr encoded_cstring(const C* string) : string(string) {}
 
@@ -653,9 +657,12 @@ namespace rv
 	struct valid_encoded_cstring : public encoded_cstring<C>
 	{
 		constexpr valid_encoded_cstring() : encoded_cstring<C>() {}
+		constexpr valid_encoded_cstring(std::nullptr_t) : encoded_cstring<C>() {}
 		template<encoding::SameCharacterType<C> C2>
-		constexpr valid_encoded_cstring(const C2* string) : encoded_cstring<C>(encoding::valid_encoded_string(string) ? string : encoding::make_invalid_string<C2>()) {}
-
+		constexpr valid_encoded_cstring(const C2* string) : encoded_cstring<C>(encoding::valid_encoded_string<C2>(string) ? string : encoding::make_invalid_string<C2>()) {}
+		template<> 
+		constexpr valid_encoded_cstring(const C* string) : encoded_cstring<C>(encoding::valid_encoded_string<C>(string) ? string : encoding::make_invalid_string<C>()) {}
+		
 		constexpr bool valid() const { return this->string != encoding::make_invalid_string<C>(); }
 		constexpr bool invalid() const { return !valid(); }
 	};
@@ -815,6 +822,12 @@ namespace rv
 			stdstring.append(unknown_utf8, 3);
 			string += 1;
 		}
+		template<CharacterType C>
+		static void append_unknown(std::basic_string<char16_t>& stdstring, const C*& string)
+		{
+			stdstring.append(unknown_utf16, 1);
+			string += 1;
+		}
 		template<typename E, typename C>
 		static void append_stdstring_size(std::basic_string<E>& std, const C* string, size_t size);
 		template<>
@@ -894,14 +907,14 @@ namespace rv
 					else if (W1 <= make_mask_ct<char16_t, 0, 5 + 1 * 6 - 1>())
 					{
 						encoded[0] = (0b110 << 5) | static_cast<char8_t>((W1 >> 6) & make_mask_ct<char16_t, 0, 4>());
-						encoded[1] = (0b10 << 6) | static_cast<char8_t>((W1 >> 0) & make_mask_ct<char16_t, 0, 5>());
+						encoded[1] = (0b10 << 6)  | static_cast<char8_t>((W1 >> 0) & make_mask_ct<char16_t, 0, 5>());
 						stdstring.append(encoded, 2);
 					}
 					else
 					{
 						encoded[0] = (0b1110 << 4) | static_cast<char8_t>((W1 >> (2 * 6)) & make_mask_ct<char16_t, 0, 3>());
-						encoded[1] = (0b10 << 6) | static_cast<char8_t>((W1 >> (1 * 6)) & make_mask_ct<char16_t, 0, 5>());
-						encoded[2] = (0b10 << 6) | static_cast<char8_t>((W1 >> (0 * 6)) & make_mask_ct<char16_t, 0, 5>());
+						encoded[1] = (0b10 << 6)   | static_cast<char8_t>((W1 >> (1 * 6)) & make_mask_ct<char16_t, 0, 5>());
+						encoded[2] = (0b10 << 6)   | static_cast<char8_t>((W1 >> (0 * 6)) & make_mask_ct<char16_t, 0, 5>());
 						stdstring.append(encoded, 3);
 					}
 					string += 1;
@@ -933,6 +946,116 @@ namespace rv
 				string += 1;
 			}
 		}
+		template<>
+		static void append_stdstring_size(std::basic_string<char16_t>& stdstring, const char8_t* string, size_t size)
+		{
+			reserve_string(stdstring, size);
+			const char8_t* end = string + size;
+
+			while (string < end)
+				if ((string[0] & make_mask_ct<char8_t, 7, 7>()) == 0)
+				{
+					stdstring.push_back(static_cast<char16_t>(string[0]));
+					string += 1;
+				}
+
+				else if ((string[0] & make_mask_ct<char8_t, 5, 7>()) == (0b110 << 5))
+					if (encoding::valid_header(string, 1))
+					{
+						char16_t c = 0;
+						c |= ((char16_t)string[0] & make_mask_ct<char16_t, 0, 4>()) << (6 * 1);
+						c |= ((char16_t)string[1] & make_mask_ct<char16_t, 0, 5>()) << (6 * 0);
+						stdstring.push_back(c);
+						string += 2;
+					}
+					else
+						append_unknown(stdstring, string);
+
+				else if ((string[0] & make_mask_ct<char8_t, 4, 7>()) == (0b1110 << 4))
+					if (encoding::valid_header(string, 1) && encoding::valid_header(string, 2))
+					{
+						char32_t c = 0;
+						c |= ((char32_t)string[0] & make_mask_ct<char32_t, 0, 3>()) << (6 * 2);
+						c |= ((char32_t)string[1] & make_mask_ct<char32_t, 0, 5>()) << (6 * 1);
+						c |= ((char32_t)string[2] & make_mask_ct<char32_t, 0, 5>()) << (6 * 0);
+						char16_t encoded[2]{};
+						size_t used = to_encoding(encoded, c);
+						stdstring.append(encoded, used);
+						stdstring += 3;
+					}
+					else
+						append_unknown(stdstring, string);
+
+				else if ((string[0] & make_mask_ct<char8_t, 3, 7>()) == (0b11110 << 3))
+					if (encoding::valid_header(string, 1) && encoding::valid_header(string, 2) && encoding::valid_header(string, 3))
+					{
+						char32_t c = 0;
+						c |= ((char32_t)string[0] & make_mask_ct<char32_t, 0, 3>()) << (6 * 3);
+						c |= ((char32_t)string[1] & make_mask_ct<char32_t, 0, 5>()) << (6 * 2);
+						c |= ((char32_t)string[2] & make_mask_ct<char32_t, 0, 5>()) << (6 * 1);
+						c |= ((char32_t)string[3] & make_mask_ct<char32_t, 0, 5>()) << (6 * 0);
+						char16_t encoded[2]{};
+						size_t used = to_encoding(encoded, c);
+						stdstring.append(encoded, used);
+						stdstring += 4;
+					}
+					else
+						append_unknown(stdstring, string);
+				else
+					append_unknown(stdstring, string);
+
+		}
+		template<>
+		static void append_stdstring_size(std::basic_string<char16_t>& stdstring, const char16_t* string, size_t size)
+		{
+			reserve_string(stdstring, size);
+			const char16_t* end = string + size;
+
+			char16_t W1;
+			char16_t W2;
+			std::endian endianness = get_utf16_endianness(string);
+
+			while (string < end)
+			{
+				if (endianness == build.endianness)
+				{
+					W1 = string[0];
+					W2 = string[1];
+				}
+				else
+				{
+					W1 = encoding::byte_swap(string[0]);
+					W2 = encoding::byte_swap(string[1]);
+				}
+
+				if (W1 < 0xD800 || W1 > 0xDFFF)
+				{
+					stdstring.append(string, 1);
+					string += 1;
+				}
+
+				else if (W1 >= 0xD800 && W1 <= 0xDBFF && W2 >= 0xDC00 && W2 <= 0xDFFF)
+				{
+					stdstring.append(string, 2);
+					string += 2;
+				}
+				else
+					append_unknown(stdstring, string);
+			}
+		}
+		template<>
+		static void append_stdstring_size(std::basic_string<char16_t>& stdstring, const char32_t* string, size_t size)
+		{
+			reserve_string(stdstring, size * 2);
+			const char32_t* end = string + size;
+			char16_t encoded[2]{};
+			while (string < end)
+			{
+				size_t used = to_encoding(encoded, string[0]);
+				stdstring.append(encoded, used);
+				string += 1;
+			}
+		}
 
 		template<typename E, typename C>
 		static void append_stdstring(std::basic_string<E>& stdstring, const C* string)
@@ -949,15 +1072,18 @@ namespace rv
 	{
 	public:
 		constexpr encoded_string() : string() {}
-		template<encoding::CharacterType C2>		encoded_string(const C2* string) : string() { append(string); }
-		template<encoding::SameCharacterType<C> C2>	encoded_string(valid_encoded_cstring<C2> string) : string() { append(string); }
-		template<encoding::CharacterType C2>		encoded_string(const std::basic_string<C2>& string) : string() { append(string); }
-		template<encoding::SameCharacterType<C> C2>	encoded_string(encoded_cstring<C2> string) : string() { append(string); }
+		constexpr encoded_string(std::nullptr_t) : string() {}
+		template<encoding::CharacterType C2>	encoded_string(const C2* string) : string() { append(string); }
+		template<encoding::CharacterType C2>	encoded_string(valid_encoded_cstring<C2> string) : string() { append(string); }
+		template<encoding::CharacterType C2>	encoded_string(const std::basic_string<C2>& string) : string() { append(string); }
+		template<encoding::CharacterType C2>	encoded_string(encoded_cstring<C2> string) : string() { append(string); }
+		template<encoding::CharacterType C2>	encoded_string(const encoded_string<C2>& string) : string() { append(string); }
+		template<>
 		encoded_string(const encoded_string& rhs) : string(rhs.string) {}
 		encoded_string(encoded_string&& rhs) noexcept : string(std::move(rhs.string)) {}
 
-		encoded_string& operator= (const encoded_string& rhs) { string = rhs.string(); return *this; }
-		encoded_string& operator= (encoded_string&& rhs) { string = std::move(rhs.string()); return *this; }
+		encoded_string& operator= (const encoded_string& rhs) { string = rhs.string; return *this; }
+		encoded_string& operator= (encoded_string&& rhs) { string = std::move(rhs.string); return *this; }
 
 		template<typename C2>
 		requires(encoding::CharacterType<C2> || std::is_same_v<C2, CodePoint>)
@@ -977,15 +1103,17 @@ namespace rv
 		void append(char16_t character) { push_back(character); }
 		void append(char32_t character) { push_back(character); }
 		void append(CodePoint character) { push_back(character); }
-		template<encoding::CharacterType C2>		void append(const C2* string) { encoding::append_stdstring(this->string, reinterpret_cast<const typename encoding::char_size<sizeof(C2)>::type*>(string)); }
-		template<encoding::SameCharacterType<C> C2>	void append(valid_encoded_cstring<C2> string) { if (string.valid()) this->string.append(reinterpret_cast<const C*>(string.c_str())); }
-		template<encoding::CharacterType C2>		void append(rv::encoded_cstring<C2> string) { append(string.c_str()); }
-		template<encoding::CharacterType C2>		void append(const std::basic_string<C2>& string) { encoding::append_stdstring_size(this->string, reinterpret_cast<const typename encoding::char_size<sizeof(C2)>::type*>(string.data()), string.size()); }
+		template<encoding::CharacterType C2>	void append(const C2* string) { encoding::append_stdstring(this->string, reinterpret_cast<const typename encoding::char_size<sizeof(C2)>::type*>(string)); }
+		template<encoding::CharacterType C2>	void append(valid_encoded_cstring<C2> string) { if constexpr (sizeof(C2) == sizeof(C)) { if (string.valid()) this->string.append(reinterpret_cast<const C*>(string.c_str())); } else if (string.valid()) append(string.c_str()); }
+		template<encoding::CharacterType C2>	void append(rv::encoded_cstring<C2> string) { append(string.c_str()); }
+		template<encoding::CharacterType C2>	void append(const std::basic_string<C2>& string) { encoding::append_stdstring_size(this->string, reinterpret_cast<const typename encoding::char_size<sizeof(C2)>::type*>(string.data()), string.size()); }
+		template<encoding::CharacterType C2>	void append(const encoded_string<C2>& string) { if constexpr (sizeof(C2) == sizeof(C)) this->string.append(reinterpret_cast<const C*>(string.c_str()), string.character_size()); else encoding::append_stdstring_size(this->string, reinterpret_cast<const typename encoding::char_size<sizeof(C2)>::type*>(string.data()), string.size()); }
 
-		template<encoding::CharacterType C2>		encoded_string& operator+= (const C2* string)						{ append(string); return *this; }
-		template<encoding::SameCharacterType<C> C2>	encoded_string& operator+= (valid_encoded_cstring<C2> string)		{ append(string); return *this; }
-		template<encoding::CharacterType C2>		encoded_string& operator+= (rv::encoded_cstring<C2> string)			{ append(string); return *this; }
-		template<encoding::CharacterType C2>		encoded_string& operator+= (const std::basic_string<C2>& string)	{ append(string); return *this; }
+		template<encoding::CharacterType C2>	encoded_string& operator+= (const C2* string)						{ append(string); return *this; }
+		template<encoding::CharacterType C2>	encoded_string& operator+= (valid_encoded_cstring<C2> string)		{ append(string); return *this; }
+		template<encoding::CharacterType C2>	encoded_string& operator+= (rv::encoded_cstring<C2> string)			{ append(string); return *this; }
+		template<encoding::CharacterType C2>	encoded_string& operator+= (const std::basic_string<C2>& string)	{ append(string); return *this; }
+		template<encoding::CharacterType C2>	encoded_string& operator+= (const encoded_string<C2>& string)		{ append(string); return *this; }
 		encoded_string& operator+= (char character)			{ push_back(character); return *this; }
 		encoded_string& operator+= (wchar_t character)		{ push_back(character); return *this; }
 		encoded_string& operator+= (char8_t character)		{ push_back(character); return *this; }
@@ -1017,6 +1145,8 @@ namespace rv
 			return invalid_code_point;
 		}
 
+		const std::basic_string<C>& std_string() const { return string; }
+
 	private:
 		std::basic_string<C> string;
 	};
@@ -1032,10 +1162,76 @@ namespace rv
 
 	namespace detail
 	{
+		template<encoding::CharacterType C, typename T>
+		std::basic_ostream<C>& make_str(std::basic_ostream<C>& os, const T& object)
+		{
+			if constexpr (encoding::CharacterType<T>)
+			{
+				using C2 = typename encoding::char_size<sizeof(C)>::type;
+				using C3 = typename encoding::char_size<sizeof(T)>::type;
+				C2 encoded[4 / sizeof(C2)]{};
+				size_t used = encoding::to_encoding(encoded, static_cast<C3>(object));				
+				return os.write(reinterpret_cast<const C*>(encoded), used);
+			}
+			else
+				return os << object;
+		}
+
+		template<encoding::CharacterType C1, encoding::CharacterType C2>
+		std::basic_ostream<C1>& make_str (std::basic_ostream<C1>& os, const encoded_string<C2>& str)
+		{
+			if constexpr (sizeof(C1) == sizeof(C2))
+				return os.write(str.c_str<C1>(), str.character_size());
+			else
+				return make_str(os, encoded_string<typename encoding::char_size<sizeof(C1)>::type>(str));
+		}
+
+		template<encoding::CharacterType C1, encoding::CharacterType C2>
+		std::basic_ostream<C1>& make_str(std::basic_ostream<C1>& os, const std::basic_string<C2>& str)
+		{
+			if constexpr (sizeof(C1) == sizeof(C2))
+				return os.write(reinterpret_cast<C1>(str.c_str()), str.size());
+			else
+				return make_str(os, encoded_string<typename encoding::char_size<sizeof(C1)>::type>(str));
+		}
+
+		template<encoding::CharacterType C1, encoding::CharacterType C2>
+		std::basic_ostream<C1>& make_str(std::basic_ostream<C1>& os, const C2* str)
+		{
+			if constexpr (sizeof(C1) == sizeof(C2))
+				if (str)
+					return os << reinterpret_cast<const C1*>(str);
+				else
+					return os;
+			else
+				return make_str(os, encoded_string<typename encoding::char_size<sizeof(C1)>::type>(str));
+		}
+
+		template<encoding::CharacterType C1, typename C2>
+		std::basic_ostream<C1>& make_str(std::basic_ostream<C1>& os, C2* str)
+		{
+			if constexpr (encoding::CharacterType<C2>)
+				return make_str(os, reinterpret_cast<const C2*>(str));
+			else
+				return os << str;
+		}
+
+		template<encoding::CharacterType C1, encoding::CharacterType C2>
+		std::basic_ostream<C1>& make_str(std::basic_ostream<C1>& os, encoded_cstring<C2> str)
+		{
+			return make_str(os, str.c_str());
+		}
+
+		template<encoding::CharacterType C1, encoding::CharacterType C2>
+		std::basic_ostream<C1>& make_str(std::basic_ostream<C1>& os, valid_encoded_cstring<C2> str)
+		{
+			return make_str(os, str.c_str());
+		}
+
 		template<typename C = char, typename F, typename... Args>
 		void str(std::basic_ostringstream<C>& oss, const F& first, const Args&... args)
 		{
-			oss << first;
+			make_str(oss, first);
 			if constexpr (NonEmpty<Args...>)
 				str(oss, args...);
 		}
@@ -1052,4 +1248,19 @@ namespace rv
 		}
 		return {};
 	}
+
+	template<typename... Args>
+	std::basic_string<char> str8(const Args&... args)
+	{
+		return str<char>(args...);
+	}
+
+	template<typename... Args>
+	std::basic_string<wchar_t> str16(const Args&... args)
+	{
+		return str<wchar_t>(args...);
+	}
+
+	template<encoding::CharacterType C>
+	static constexpr valid_encoded_cstring<C> strvalid(const C* str) { return str; }
 }

@@ -6,24 +6,31 @@ rv::ResultException::ResultException(const Result& result)
 	:
 	m_result(result)
 {
-	std::stringstream ss;
+	std::wostringstream ss;
 	Format(ss);
-	m_message = ss.str();
+	m_message_8 = ss.str();
+	m_message_16 = ss.str();
 }
 
-rv::ResultException::ResultException(const Result& result, const std::string& message)
+rv::ResultException::ResultException(const Result& result, const utf16_string& message)
 	:
 	m_result(result)
 {
-	std::stringstream ss;
+	std::wostringstream ss;
 	Format(ss);
-	ss << "\n\n" << "Message: " << message;
-	m_message = ss.str();
+	rv::detail::str(ss, L"\n\nMessage: ", message);
+	m_message_8 = ss.str();
+	m_message_16 = ss.str();
 }
 
 const char* rv::ResultException::what() const
 {
-	return m_message.c_str();
+	return m_message_8.c_str<char>();
+}
+
+const wchar_t* rv::ResultException::wide_what() const
+{
+	return m_message_16.c_str<wchar_t>();
 }
 
 const rv::Result& rv::ResultException::result() const
@@ -31,15 +38,15 @@ const rv::Result& rv::ResultException::result() const
 	return m_result;
 }
 
-void rv::ResultException::Format(std::stringstream& ss)
+void rv::ResultException::Format(std::wostringstream& ss)
 {
 	const char* name = resultHandler.GetResultName(m_result);
 	if (!name)
 		name = "Unknown";
 
-	ss << "Result Exception occurred!\n\n";
-	ss << "Type: " << name << '\n';
-	ss << "Severity: " << to_string(m_result.severity());
+	rv::detail::str(ss, L"Result Exception occurred!\n\n");
+	rv::detail::str(ss, L"Type: ", name, L'\n');
+	rv::detail::str(ss, L"Severity: ", to_wstring(m_result.severity()));
 }
 
 void rv::ResultHandler::RegisterResult(const Identifier32& result)
@@ -100,7 +107,7 @@ rv::ResultQueue& rv::ResultQueue::operator=(ResultQueue&& rhs) noexcept
 	return *this;
 }
 
-void rv::ResultQueue::PushResult(Result result, std::string&& message)
+void rv::ResultQueue::PushResult(Result result, utf16_string&& message)
 {
 	ResultInfo r;
 	r.message = std::move(message);
@@ -168,22 +175,22 @@ const rv::Result& rv::ResultInfo::result() const
 	return header->info.result;
 }
 
-std::string& rv::ResultInfo::message()
+rv::utf16_string& rv::ResultInfo::message()
 {
 	return header->info.message;
 }
 
-const std::string& rv::ResultInfo::message() const
+const rv::utf16_string& rv::ResultInfo::message() const
 {
 	return header->info.message;
 }
 
-std::string& rv::ResultInfo::description()
+rv::utf16_string& rv::ResultInfo::description()
 {
 	return header->info.info;
 }
 
-const std::string& rv::ResultInfo::description() const
+const rv::utf16_string& rv::ResultInfo::description() const
 {
 	return header->info.info;
 }

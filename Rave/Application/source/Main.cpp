@@ -6,6 +6,7 @@
 
 rv::Result rv_main()
 {
+	rv_result;
 	std::cin.ignore();
-	return rv::success;
+	return rv::failed_assertion;
 }

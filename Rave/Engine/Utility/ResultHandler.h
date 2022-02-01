@@ -2,6 +2,7 @@
 #include "Engine/Utility/Result.h"
 #include "Engine/Utility/Queue.h"
 #include "Engine/Core/Build.h"
+#include "Engine/Utility/String.h"
 #include <exception>
 #include <sstream>
 #include <map>
@@ -32,12 +33,12 @@ namespace rv
 		{
 			ResultInfo() = default;
 			Result result;
-			std::string message;
-			std::string info;
+			utf16_string message;
+			utf16_string info;
 		};
 
 		template<typename I>
-		void PushResult(Result result, std::string&& message, const I& info)
+		void PushResult(Result result, utf16_string&& message, const I& info)
 		{
 			ResultInfo r;
 			r.message = std::move(message);
@@ -47,7 +48,7 @@ namespace rv
 			queue.PushEntry(std::move(r), info);
 		}
 		template<typename I>
-		void PushResult(Result result, std::string&& message, I&& info)
+		void PushResult(Result result, utf16_string&& message, I&& info)
 		{
 			ResultInfo r;
 			r.message = std::move(message);
@@ -57,7 +58,7 @@ namespace rv
 			queue.PushEntry(std::move(r), std::move(info));
 		}
 
-		void PushResult(Result result, std::string&& message);
+		void PushResult(Result result, utf16_string&& message);
 
 		Queue<ResultInfo>::Header* GetResult(Flags<Severity> severity = RV_SEVERITY_ALL);
 
@@ -87,11 +88,11 @@ namespace rv
 		Result& result();
 		const Result& result() const;
 
-		std::string& message();
-		const std::string& message() const;
+		utf16_string& message();
+		const utf16_string& message() const;
 
-		std::string& description();
-		const std::string& description() const;
+		utf16_string& description();
+		const utf16_string& description() const;
 
 		template<typename I>
 		bool is_type() const { return header ? (header->type == typeid(I).hash_code()) : false; }
@@ -114,6 +115,11 @@ namespace rv
 		ResultQueue& GetThreadQueue();
 		std::vector<std::reference_wrapper<std::pair<const std::thread::id, ResultQueue>>> GetQueues();
 
+		template<typename I> void PushResult(Result result, utf16_string&& message, const I& info)	{ GetThreadQueue().PushResult(result, std::move(message), info); }
+		template<typename I> void PushResult(Result result, utf16_string&& message, I&& info)		{ GetThreadQueue().PushResult(result, std::move(message), std::move(info)); }
+
+		void PushResult(Result result, utf16_string&& message) { GetThreadQueue().PushResult(result, std::move(message)); }
+
 		void Clear();
 
 #		ifdef RV_LOG_RESULTS
@@ -135,16 +141,18 @@ namespace rv
 	public:
 		ResultException() = default;
 		ResultException(const Result& result);
-		ResultException(const Result& result, const std::string& message);
+		ResultException(const Result& result, const utf16_string& message);
 
 		const char* what() const override;
+		const wchar_t* wide_what() const;
 		const Result& result() const;
 
 	private:
-		void Format(std::stringstream& ss);
+		void Format(std::wostringstream& ss);
 
 		Result m_result;
-		std::string m_message;
+		utf8_string m_message_8;
+		utf16_string m_message_16;		
 	};
 
 	extern ResultHandler resultHandler;

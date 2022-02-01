@@ -21,32 +21,32 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{6d329d61-a44b-4913-a01a-ae1b4fdec9aa}</ProjectGuid>
-    <RootNamespace>Engine</RootNamespace>
+    <ProjectGuid>{1f4e1693-d2d4-4e56-b162-ea2c8d4c7c70}</ProjectGuid>
+    <RootNamespace>Quick</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -72,23 +72,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)$(PlatformTarget)\</OutDir>
-    <IntDir>$(SolutionDir)bin_int\$(ProjectName)\$(Configuration)$(PlatformTarget)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)$(PlatformTarget)\</OutDir>
-    <IntDir>$(SolutionDir)bin_int\$(ProjectName)\$(Configuration)$(PlatformTarget)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)$(PlatformTarget)\</OutDir>
-    <IntDir>$(SolutionDir)bin_int\$(ProjectName)\$(Configuration)$(PlatformTarget)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)$(PlatformTarget)\</OutDir>
-    <IntDir>$(SolutionDir)bin_int\$(ProjectName)\$(Configuration)$(PlatformTarget)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -96,9 +88,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;4002</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,9 +102,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;4002</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,9 +116,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;4002</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,9 +130,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;4002</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,43 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Audio\source\AudioEngine.cpp" />
-    <ClCompile Include="Core\source\AutoStartupClean.cpp" />
-    <ClCompile Include="Core\source\Engine.cpp" />
-    <ClCompile Include="Core\source\Main.cpp" />
-    <ClCompile Include="Utility\source\File.cpp" />
-    <ClCompile Include="Utility\source\Logger.cpp" />
-    <ClCompile Include="Utility\source\Error.cpp" />
-    <ClCompile Include="Utility\source\Event.cpp" />
-    <ClCompile Include="Utility\source\Result.cpp" />
-    <ClCompile Include="Utility\source\ResultHandler.cpp" />
-    <ClCompile Include="Utility\source\TimeStamp.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Audio\AudioEngine.h" />
-    <ClInclude Include="Core\AutoStartupClean.h" />
-    <ClInclude Include="Core\Build.h" />
-    <ClInclude Include="Core\Engine.h" />
-    <ClInclude Include="Core\Main.h" />
-    <ClInclude Include="Core\Window.h" />
-    <ClInclude Include="Core\Windows.h" />
-    <ClInclude Include="Rave.h" />
-    <ClInclude Include="Utility\Concepts.h" />
-    <ClInclude Include="Utility\Error.h" />
-    <ClInclude Include="Utility\Event.h" />
-    <ClInclude Include="Utility\File.h" />
-    <ClInclude Include="Utility\Flags.h" />
-    <ClInclude Include="Utility\Hash.h" />
-    <ClInclude Include="Utility\Identifier.h" />
-    <ClInclude Include="Utility\Logger.h" />
-    <ClInclude Include="Utility\Queue.h" />
-    <ClInclude Include="Utility\Result.h" />
-    <ClInclude Include="Utility\ResultHandler.h" />
-    <ClInclude Include="Utility\Safety.h" />
-    <ClInclude Include="Utility\String.h" />
-    <ClInclude Include="Utility\TimeStamp.h" />
-    <ClInclude Include="Utility\Types.h" />
-    <ClInclude Include="Utility\Unicode.h" />
+    <ClCompile Include="Quick.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

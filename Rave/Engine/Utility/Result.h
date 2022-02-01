@@ -3,6 +3,7 @@
 #include "Engine/Utility/Hash.h"
 #include "Engine/Utility/Flags.h"
 #include "Engine/Utility/Identifier.h"
+#include "Engine/Utility/String.h"
 #include <memory>
 
 namespace rv
@@ -28,6 +29,18 @@ namespace rv
 			default:					return nullptr;
 		}
 	}
+	static constexpr const wchar_t* to_wstring(Severity severity)
+	{
+		switch (severity)
+		{
+			case RV_SEVERITY_NULL:		return L"Null";
+			case RV_SEVERITY_INFO:		return L"Info";
+			case RV_SEVERITY_WARNING:	return L"Warning";
+			case RV_SEVERITY_ERROR:		return L"Error";
+			case RV_SEVERITY_ALL:		return L"Info - Warning - Error";
+			default:					return nullptr;
+		}
+	}
 
 	static constexpr Identifier32 global_result = "Global Result";
 
@@ -48,10 +61,11 @@ namespace rv
 		constexpr bool failed(Flags<Severity> failure = make_flags<Severity>(RV_SEVERITY_WARNING, RV_SEVERITY_ERROR)) const { return failure.contains(severity()); }
 		constexpr bool fatal() const { return severity() == RV_SEVERITY_ERROR; }
 
-		void expect(const char* message);
-		void expect(Flags<Severity> success = make_flags<Severity>(RV_SEVERITY_INFO));
-		void expect(Flags<Severity> success, const char* message);
-		void expect(Flags<Severity> success, const std::string& message);
+		void expect(utf16_string&& message) const;
+		void expect(Flags<Severity> success = make_flags<Severity>(RV_SEVERITY_INFO)) const;
+		void expect(Flags<Severity> success, utf16_string&& message) const;
+		void expect(const utf16_string& message) const;
+		void expect(Flags<Severity> success, const utf16_string& message) const;
 
 	private:
 		u32 code;

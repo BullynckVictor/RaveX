@@ -3,6 +3,8 @@
 #include "Engine/Utility/Error.h"
 #include "Engine/Utility/Types.h"
 #include "Engine/Utility/ResultHandler.h"
+#include "Engine/Utility/String.h"
+#include "Engine/Core/AutoStartupClean.h"
 
 using namespace rv;
 
@@ -19,24 +21,14 @@ uint to_icon(Severity severity)
 	}
 }
 
-void clean()
-{
-	resultHandler.Clear();
-}
-
-struct AutoCleaner
-{
-	~AutoCleaner() { clean(); }
-};
-
-void message_box(const char* title, const char* message, uint icon = MB_ICONERROR)
+void message_box(const wchar_t* title, const wchar_t* message, uint icon = MB_ICONERROR)
 {
 	int response = MessageBox(nullptr, message, title, icon | MB_RETRYCANCEL);
 
 	if constexpr (resultHandler.enabled)
 	if (response == IDRETRY)
 	{
-		std::stringstream ss;
+		std::wostringstream ss;
 
 		Severity maxSeverity = RV_SEVERITY_NULL;
 
@@ -51,9 +43,9 @@ void message_box(const char* title, const char* message, uint icon = MB_ICONERRO
 				results.emplace_back(result);
 
 			if (thread == std::this_thread::get_id())
-				ss << "Main thread:\t" << results.size() << " results\n";
+				detail::str(ss, L"Main thread:\t", results.size(), L" results\n");
 			else
-				ss << "Thread 0x" << std::hex << thread << std::dec << ":\t" << results.size() << " results\n";
+				detail::str(ss, L"Thread 0x", std::hex, thread, std::dec, L":\t", results.size(), L" results\n");
 
 
 			for (const auto& result : results)
@@ -63,34 +55,34 @@ void message_box(const char* title, const char* message, uint icon = MB_ICONERRO
 				if (!name)
 					name = "Unknown";
 
-				ss << "\nResult " << &result - results.data() + 1 << ":\n";
-				ss << "Type:\t\t" << name << '\n';
-				ss << "Severity:\t\t" << to_string(res.severity()) << '\n';
+				detail::str(ss, L"\nResult ", &result - results.data() + 1, L":\n");
+				detail::str(ss, L"Type:\t\t", name, L'\n');
+				detail::str(ss, L"Severity:\t\t", to_wstring(res.severity()), L'\n');
 				if (!result.description().empty())
-					ss << result.description() << '\n';
+					detail::str(ss, result.description(), L'\n');
 				if (!result.message().empty())
-					ss << "Message:\n" << result.message() << '\n';
+					detail::str(ss, L"Message:\n", result.message(), L'\n');
 
 				if (maxSeverity < res.severity())
 					maxSeverity = res.severity();
 			}
 
-			ss << "\n\n";
+			ss << L"\n\n";
 		}
 
 		if (!queues.empty())
-			MessageBox(nullptr, ss.str().c_str(), "Queued Result Information", to_icon(maxSeverity) | MB_OK);
+			MessageBox(nullptr, ss.str().c_str(), L"Queued Result Information", to_icon(maxSeverity) | MB_OK);
 	}
 }
 
 void message_box(const std::exception& exception)
 {
-	message_box("Standard Exception", exception.what());
+	message_box(L"Standard Exception", utf16_string(exception.what()).c_str<wchar_t>());
 }
 
 void message_box(const ResultException& exception)
 {
-	message_box("Rave Exception", exception.what(), to_icon(exception.result().severity()));
+	message_box(L"Rave Exception", exception.wide_what(), to_icon(exception.result().severity()));
 }
 
 void message_box(const Result& result)
@@ -102,8 +94,7 @@ int main()
 {
 	try
 	{
-		AutoCleaner cleaner;
-		resultHandler.RegisterResult(global_result);
+		AutoStartupClean startup_cleaner;
 		Result result = rv_main();
 
 		if (result.fatal())
@@ -126,7 +117,7 @@ int main()
 	}
 	catch (...)
 	{
-		message_box("Unknown Error", "An unknown exception has occurred and the program has failed.\n\nPlease contact the developers");
+		message_box(L"Unknown Error", L"An unknown exception has occurred and the program has failed.\n\nPlease contact the developers");
 	}
 	return EXIT_FAILURE;
 }

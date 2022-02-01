@@ -42,7 +42,10 @@
     <ClCompile Include="Utility\source\File.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\source\String.cpp">
+    <ClCompile Include="Core\source\AutoStartupClean.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\source\Result.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -69,9 +72,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utility\Identifier.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\source\Result.cpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utility\Error.h">
@@ -117,6 +117,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utility\Unicode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\AutoStartupClean.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
