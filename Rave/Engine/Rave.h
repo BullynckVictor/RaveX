@@ -13,5 +13,6 @@
 #include "Engine/Utility/Event.h"
 #include "Engine/Utility/Logger.h"
 #include "Engine/Utility/ResultHandler.h"
+#include "Engine/Utility/Vector.h"
 
 #include "Engine/Audio/AudioEngine.h"

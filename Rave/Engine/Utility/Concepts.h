@@ -36,4 +36,29 @@ namespace rv
 
 	template<typename T>
 	concept EnumType = std::is_enum_v<T>;
+
+	template<typename T, typename D>
+	concept ConvertibleType = std::is_convertible_v<T, D>;
+
+	namespace detail
+	{
+		template<typename T, typename F, typename... Args>
+		static constexpr bool all_convertible()
+		{
+			bool conv = ConvertibleType<F, T>;
+			if constexpr (NonEmpty<Args...>)
+				conv = conv && all_convertible<T, Args...>();
+			return conv;
+		}
+
+
+		template<typename T, typename F, typename... Args>
+		static constexpr bool all_convertible_and_arithmetic()
+		{
+			bool conv = ConvertibleType<F, T> && std::is_arithmetic_v<F>;
+			if constexpr (NonEmpty<Args...>)
+				conv = conv && all_convertible_and_arithmetic<T, Args...>();
+			return conv;
+		}
+	}
 }

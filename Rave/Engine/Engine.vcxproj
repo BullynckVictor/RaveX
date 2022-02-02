@@ -163,6 +163,7 @@
     <ClCompile Include="Core\source\AutoStartupClean.cpp" />
     <ClCompile Include="Core\source\Engine.cpp" />
     <ClCompile Include="Core\source\Main.cpp" />
+    <ClCompile Include="Graphics\source\Window.cpp" />
     <ClCompile Include="Utility\source\File.cpp" />
     <ClCompile Include="Utility\source\Logger.cpp" />
     <ClCompile Include="Utility\source\Error.cpp" />
@@ -177,8 +178,8 @@
     <ClInclude Include="Core\Build.h" />
     <ClInclude Include="Core\Engine.h" />
     <ClInclude Include="Core\Main.h" />
-    <ClInclude Include="Core\Window.h" />
     <ClInclude Include="Core\Windows.h" />
+    <ClInclude Include="Graphics\Window.h" />
     <ClInclude Include="Rave.h" />
     <ClInclude Include="Utility\Concepts.h" />
     <ClInclude Include="Utility\Error.h" />
@@ -196,6 +197,7 @@
     <ClInclude Include="Utility\TimeStamp.h" />
     <ClInclude Include="Utility\Types.h" />
     <ClInclude Include="Utility\Unicode.h" />
+    <ClInclude Include="Utility\Vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
