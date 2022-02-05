@@ -298,10 +298,13 @@ namespace rv
 	typedef Vector<2, float> Vector2;
 	typedef Vector<3, float> Vector3;
 	typedef Vector<4, float> Vector4;
+	typedef Vector<2, int> Point2;
+	typedef Vector<3, int> Point3;
+	typedef Vector<2, int> Point;
 
-	typedef Extent<2, float> Extent2;
-	typedef Extent<3, float> Extent3;
-	typedef Extent<2, float> Size2;
-	typedef Extent<3, float> Size3;
-	typedef Extent<2, float> Size;
+	typedef Extent<2, size_t> Extent2;
+	typedef Extent<3, size_t> Extent3;
+	typedef Extent<2, size_t> Size2;
+	typedef Extent<3, size_t> Size3;
+	typedef Extent<2, size_t> Size;
 }

@@ -88,18 +88,18 @@ namespace rv
 #define rv_check_condition(condition)			rv::check_condition(condition, #condition, __FILE__, __LINE__)
 #define rv_check_file(file)						rv::check_file(file, __FILE__, __LINE__)
 #define rv_check_hr(hr)							rv::check_hr(hr, __FILE__, __LINE__)
-#define rv_check_last(condition)				rv::check_hr(condition, __FILE__, __LINE__)
+#define rv_check_last(condition)				rv::check_last(condition, __FILE__, __LINE__)
 
 #ifdef RV_LOG_RESULTS
 #define rv_check_condition_msg(condition, msg)	rv::check_condition(condition, #condition, __FILE__, __LINE__, msg)
 #define rv_check_file_msg(file, msg)			rv::check_file(file, __FILE__, __LINE__, msg)
 #define rv_check_hr_msg(hr, msg)				rv::check_hr(hr, __FILE__, __LINE__, msg)
-#define rv_check_last_msg(condition, msg)		rv::check_hr(condition, __FILE__, __LINE__, msg)
+#define rv_check_last_msg(condition, msg)		rv::check_last(condition, __FILE__, __LINE__, msg)
 #else
 #define rv_check_condition_msg(condition, msg)	rv::check_condition(condition, #condition, __FILE__, __LINE__)
 #define rv_check_file_msg(file, msg)			rv::check_file(file, __FILE__, __LINE__)
 #define rv_check_hr_msg(hr, msg)				rv::check_hr(hr, __FILE__, __LINE__)
-#define rv_check_last_msg(condition, msg)		rv::check_hr(condition, __FILE__, __LINE__)
+#define rv_check_last_msg(condition, msg)		rv::check_last(condition, __FILE__, __LINE__)
 #endif
 
 #ifdef RV_DEBUG

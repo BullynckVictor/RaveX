@@ -145,10 +145,14 @@ rv::Result rv::check_hr(HRESULT hr, const char* source, uint64 line, utf16_strin
 
 rv::Result rv::check_last(bool condition, const char* source, uint64 line)
 {
+	if (condition)
+		return succeeded_hr;
 	return check_hr((HRESULT)GetLastError(), source, line);
 }
 
 rv::Result rv::check_last(bool condition, const char* source, uint64 line, utf16_string&& message)
 {
-	return check_hr((HRESULT)GetLastError(), source, line, std::move(message));
+	if (condition)
+		return succeeded_hr;
+	return check_hr(HRESULT_FROM_WIN32(GetLastError()), source, line, std::move(message));
 }

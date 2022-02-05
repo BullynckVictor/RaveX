@@ -1,26 +1,27 @@
 ﻿#include <iostream>
 #include "Engine/Rave.h"
-#include <memory>
-#include <comdef.h>
-#include <fstream>
 
-constexpr float foo()
-{
-	int z = 5;
-	rv::Vector2 vec1 = z;
-	rv::Vector3 vec2 = rv::Vector3(5, 7.0, 9.0f);
-	vec2 += 2.1;
-
-	return vec2.z;
-}
-
-template<float F>
-struct A { static constexpr float value = F; };
+static constexpr bool failed = FAILED(ERROR_ACCOUNT_DISABLED);
 
 rv::Result rv_main()
 {
 	rv_result;
-	std::cout << A<foo()>::value;
+
+	rv::Engine engine;
+	rv_rif(rv::Engine::Create(engine));
+	rv::EventListener threadListener(engine.graphics.thread);
+
+	rv::Window& window = engine.graphics.CreateWindowRenderer();
+
+	engine.graphics.thread.Await();
+
+	while (window.Open())
+	{
+		while (rv::Event e = threadListener.GetEvent())
+			if (e.IsType<rv::FailedResult>())
+				return e.Get<rv::FailedResult>().result;
+	}
+
 	std::cin.ignore();
 	return result;
 }

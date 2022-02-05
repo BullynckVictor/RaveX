@@ -36,6 +36,8 @@ namespace rv
 		constexpr bool get(const E& flags) const { return contain(flags); }
 
 		constexpr Flags flipped() const { return ~m_data; }
+		constexpr Flags without(Flags flags) const { return m_data & ~flags.m_data; }
+		constexpr void  erase(Flags flags) { m_data &= ~flags.m_data; }
 
 		constexpr void flip() { m_data = ~m_data; }
 		constexpr void set(Flags flags, bool value = true) { value ? (m_data ^= flags) : (m_data &= ~flags.m_data); }

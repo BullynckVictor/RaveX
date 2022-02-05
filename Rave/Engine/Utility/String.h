@@ -1078,7 +1078,6 @@ namespace rv
 		template<encoding::CharacterType C2>	encoded_string(const std::basic_string<C2>& string) : string() { append(string); }
 		template<encoding::CharacterType C2>	encoded_string(encoded_cstring<C2> string) : string() { append(string); }
 		template<encoding::CharacterType C2>	encoded_string(const encoded_string<C2>& string) : string() { append(string); }
-		template<>
 		encoded_string(const encoded_string& rhs) : string(rhs.string) {}
 		encoded_string(encoded_string&& rhs) noexcept : string(std::move(rhs.string)) {}
 

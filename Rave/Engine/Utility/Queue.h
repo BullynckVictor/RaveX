@@ -38,34 +38,37 @@ namespace rv
 		}
 
 		template<typename D>
-		void PushEntry(const I& info, const D& data)
+		D* PushEntry(const I& info, const D& data)
 		{
-			PushHeader(&(new Entry<D>(info, data))->header);
+			return PushHeader(&(new Entry<D>(info, data))->header)->data<D>();
 		}
 		template<typename D>
-		void PushEntry(const I& info, D&& data)
+		D* PushEntry(const I& info, D&& data)
 		{
-			PushHeader(&(new Entry<D>(info, std::move(data)))->header);
+			return PushHeader(&(new Entry<D>(info, std::move(data)))->header)->data<D>();
 		}
-		void PushEntry(const I& info)
+		void* PushEntry(const I& info)
 		{
 			Header* header = new Header();
 			header->info = info;
 			header->type = typeid(void).hash_code();
 			PushHeader(header);
+			return header;
 		}
-		void PushEntry(I&& info)
+		void* PushEntry(I&& info)
 		{
 			Header* header = new Header();
 			header->info = std::move(info);
 			header->type = typeid(void).hash_code();
 			PushHeader(header);
+			return header;
 		}
 
 		void Clear()
 		{
 			if (first)
 				delete first;
+			first = nullptr;
 		}
 
 	private:
@@ -112,7 +115,7 @@ namespace rv
 			{
 				header.info = info;
 				header.type = typeid(D).hash_code();
-				header.dataOffset = offsetof(Entry<D>, data);
+				header.dataOffset = offsetof(Entry<D>, data) - offsetof(Entry<D>, header);
 				if constexpr (std::is_class_v<D>)
 					header.destructor = make_destructor<D>;
 			}
@@ -122,7 +125,7 @@ namespace rv
 			{
 				header.info = info;
 				header.type = typeid(D).hash_code();
-				header.dataOffset = offsetof(Entry<D>, data);
+				header.dataOffset = offsetof(Entry<D>, data) - offsetof(Entry<D>, header);
 				if constexpr (std::is_class_v<D>)
 					header.destructor = make_destructor<D>;
 			}
@@ -132,7 +135,7 @@ namespace rv
 		};
 
 	private:
-		void PushHeader(Header* header)
+		Header* PushHeader(Header* header)
 		{
 			Header* prevLast = last;
 			header->prev = prevLast;
@@ -142,26 +145,32 @@ namespace rv
 				first = header;
 			else
 				prevLast->next = header;
+
+			return header;
 		}
 
 	public:
+		Header* PeekHeader()
+		{
+			return first;
+		}
+
 		Header* GetHeader()
 		{
-			for (Header* header = first; header; ++header)
+			if (first)
 			{
-				if (header->prev)
-					header->prev->next = header->next;
+				Header* f = first;
+				first = first->next;
+				if (!first) // no headers
+					last = nullptr;
 				else
-					//this header is the first
-					first = header->next;
-
-				if (header->next)
-					header->next->prev = header->prev;
-				else
-					//this header is the last
-					last = header->prev;
-
-				return header;
+				{
+					first->prev = nullptr;
+					if (!first->next) // the only header
+						last = first;
+				}
+				f->next = nullptr;
+				return f;
 			}
 			return nullptr;
 		}
@@ -169,7 +178,7 @@ namespace rv
 		template<typename C, typename... Args>
 		Header* GetHeader(const C& checker, const Args&... args)
 		{
-			for (Header* header = first; header; ++header)
+			for (Header* header = first; header; header = header->next)
 			{
 				if (checker(header, args...))
 				{
@@ -189,6 +198,11 @@ namespace rv
 				}
 			}
 			return nullptr;
+		}
+
+		bool Empty() const
+		{
+			return !first;
 		}
 
 	private:

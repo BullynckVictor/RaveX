@@ -163,6 +163,8 @@
     <ClCompile Include="Core\source\AutoStartupClean.cpp" />
     <ClCompile Include="Core\source\Engine.cpp" />
     <ClCompile Include="Core\source\Main.cpp" />
+    <ClCompile Include="Graphics\source\GraphicsEngine.cpp" />
+    <ClCompile Include="Graphics\source\GraphicsThread.cpp" />
     <ClCompile Include="Graphics\source\Window.cpp" />
     <ClCompile Include="Utility\source\File.cpp" />
     <ClCompile Include="Utility\source\Logger.cpp" />
@@ -179,8 +181,12 @@
     <ClInclude Include="Core\Engine.h" />
     <ClInclude Include="Core\Main.h" />
     <ClInclude Include="Core\Windows.h" />
+    <ClInclude Include="Graphics\GraphicsEngine.h" />
+    <ClInclude Include="Graphics\GraphicsThread.h" />
+    <ClInclude Include="Graphics\Renderer.h" />
     <ClInclude Include="Graphics\Window.h" />
     <ClInclude Include="Rave.h" />
+    <ClInclude Include="Utility\Any.h" />
     <ClInclude Include="Utility\Concepts.h" />
     <ClInclude Include="Utility\Error.h" />
     <ClInclude Include="Utility\Event.h" />
