@@ -56,44 +56,64 @@ namespace rv
 		R* AddRenderer(typename R::Descriptor&& descriptor)
 		{
 			R* r = nullptr;
-			bool empty;
+			if (MultiThreaded())
 			{
-				std::lock_guard guard(queueMutex);
-				empty = renderers.Empty();
+				bool empty;
+				{
+					std::lock_guard guard1(createMutex);
+					std::lock_guard guard2(queueMutex);
+					empty = renderers.Empty();
+					r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
+					createInfo.push_back(RendererCreateInfo::Make<R>(r, std::move(descriptor)));
+				}
+				if (empty)
+					wakeUpSignal.notify_one();
+			}
+			else
+			{
 				r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
+				Result result = R::Create(*r, std::move(descriptor));
+				if (result.failed())
+					PostEvent(FailedResult(result));
 			}
-			{
-				std::lock_guard guard(createMutex);
-				createInfo.push_back(RendererCreateInfo::Make<R>(r, std::move(descriptor)));
-			}
-			if (empty)
-				wakeUpSignal.notify_one();
 			return r;
 		}
 		template<typename R>
 		R* AddRenderer(const typename R::Descriptor& descriptor)
 		{
 			R* r = nullptr;
-			bool empty;
+			if (MultiThreaded())
 			{
-				std::lock_guard guard(createMutex);
-				std::lock_guard guard(queueMutex);
-				empty = renderers.Empty();
-				r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
-				createInfo.push_back(RendererCreateInfo::Make<R>(r, descriptor));
+				bool empty;
+				{
+					std::lock_guard guard1(createMutex);
+					std::lock_guard guard2(queueMutex);
+					empty = renderers.Empty();
+					r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
+					createInfo.push_back(RendererCreateInfo::Make<R>(r, descriptor));
+				}
+				if (empty)
+					wakeUpSignal.notify_one();
 			}
-			if (empty)
-				wakeUpSignal.notify_one();
+			else
+			{
+				r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
+				Result result = R::Create(*r, descriptor);
+				if (result.failed())
+					PostEvent(FailedResult(result));
+			}
 			return r;
 		}
 
 		bool FinishedCreating();
 		void Await();
 
-	private:
 		static bool SingleThreaded();
 		static bool MultiThreaded();
 
+		void RenderSingleThreaded();
+
+	private:
 		void Task();
 		static void StaticTask(GraphicsThread& thread);
 

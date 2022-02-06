@@ -19,7 +19,7 @@ namespace rv
 		constexpr Flags() : m_data(0) {}
 		constexpr Flags(E flag) : m_data(flag) {}
 
-		constexpr operator typename of_size<sizeof(E)>::type() const { return m_data; }
+		constexpr explicit operator typename of_size<sizeof(E)>::type() const { return m_data; }
 		constexpr typename of_size<sizeof(E)>::type data() const { return m_data; }
 
 		constexpr Flags<E> operator|  (const Flags<E>& rhs) const { return m_data | rhs.m_data; }

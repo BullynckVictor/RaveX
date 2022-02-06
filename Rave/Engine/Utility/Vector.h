@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Utility/Concepts.h"
+#include "Engine/Utility/Types.h"
 #include <array>
 #include <type_traits>
 
@@ -46,7 +47,7 @@ namespace rv
 		using value_type = T;
 
 		constexpr Vector() : array() {}
-		template<ConvertibleType<T> C>				constexpr Vector(const C& value) : array() { array.fill(static_cast<T>(value)); }
+		constexpr Vector(const T& value) : array() { array.fill(value); }
 		template<SmallerVectorType<Vector<S, T>> V>	constexpr Vector(const V& rhs) : array() { *this = rhs; }
 		template<SmallerVectorType<Vector<S, T>> V>	constexpr Vector(V&& rhs) : array() { *this = std::move(rhs); }
 
@@ -68,7 +69,7 @@ namespace rv
 		using value_type = T;
 
 		constexpr Vector() : x(0), y(0) {}
-		template<ConvertibleType<T> C>				constexpr Vector(const C& value) : x(static_cast<T>(value)), y(static_cast<T>(value)) {}
+		constexpr Vector(const T& value) : x(value), y(value) {}
 		template<SmallerVectorType<Vector<2, T>> V>	constexpr Vector(const V& rhs) : x(0), y(0) { *this = rhs; }
 		template<SmallerVectorType<Vector<2, T>> V>	constexpr Vector(V&& rhs) : x(0), y(0) { *this = std::move(rhs); }
 
@@ -95,7 +96,7 @@ namespace rv
 		using value_type = T;
 
 		constexpr Vector() : x(0), y(0), z(0) {}
-		template<ConvertibleType<T> C>							constexpr Vector(const C& value) : x(static_cast<T>(value)), y(static_cast<T>(value)), z(static_cast<T>(value)) {}
+		constexpr Vector(const T& value) : x(value), y(value), z(value) {}
 		template<SmallerVectorType<Vector<3, T>> V>				constexpr Vector(const V& rhs) : x(0), y(0), z(0) { *this = rhs; }
 		template<SmallerVectorType<Vector<3, T>> V>				constexpr Vector(V&& rhs) : x(0), y(0), z(0) { *this = std::move(rhs); }
 
@@ -125,7 +126,7 @@ namespace rv
 		using value_type = T;
 
 		constexpr Vector() : x(0), y(0), z(0), w(0) {}
-		template<ConvertibleType<T> C>							constexpr Vector(const C& value) : x(static_cast<T>(value)), y(static_cast<T>(value)), z(static_cast<T>(value)), w(static_cast<T>(value)) {}
+		constexpr Vector(const T& value) : x(value), y(value), z(value), w(value) {}
 		template<SmallerVectorType<Vector<4, T>> V>				constexpr Vector(const V& rhs) : x(0), y(0), z(0), w(0) { *this = rhs; }
 		template<SmallerVectorType<Vector<4, T>> V>				constexpr Vector(V&& rhs) : x(0), y(0), z(0), w(0) { *this = std::move(rhs); }
 
@@ -158,7 +159,7 @@ namespace rv
 		using value_type = T;
 
 		constexpr Extent() : array() {}
-		template<ConvertibleType<T> C>				constexpr Extent(const C& value) : array() { array.fill(static_cast<T>(value)); }
+		constexpr Extent(const T& value) : array() { array.fill(value); }
 		template<SmallerVectorType<Extent<S, T>> V>	constexpr Extent(const V& rhs) : array() { *this = rhs; }
 		template<SmallerVectorType<Extent<S, T>> V>	constexpr Extent(V&& rhs) : array() { *this = std::move(rhs); }
 
@@ -180,7 +181,7 @@ namespace rv
 		using value_type = T;
 
 		constexpr Extent() : width(0), height(0) {}
-		template<ConvertibleType<T> C>				constexpr Extent(const C& value) : width(static_cast<T>(value)), height(static_cast<T>(value)) {}
+		constexpr Extent(const T& value) : width(value), height(value) {}
 		template<SmallerVectorType<Extent<2, T>> V>	constexpr Extent(const V& rhs) : width(0), height(0) { *this = rhs; }
 		template<SmallerVectorType<Extent<2, T>> V>	constexpr Extent(V&& rhs) : width(0), height(0) { *this = std::move(rhs); }
 
@@ -207,7 +208,7 @@ namespace rv
 		using value_type = T;
 
 		constexpr Extent() : width(0), height(0), depth(0) {}
-		template<ConvertibleType<T> C>				constexpr Extent(const C& value) : width(static_cast<T>(value)), height(static_cast<T>(value)), depth(static_cast<T>(value)) {}
+		constexpr Extent(const T& value) : width(value), height(value), depth(value) {}
 		template<SmallerVectorType<Extent<3, T>> V>	constexpr Extent(const V& rhs) : width(0), height(0), depth(0) { *this = rhs; }
 		template<SmallerVectorType<Extent<3, T>> V>	constexpr Extent(V&& rhs) : width(0), height(0), depth(0) { *this = std::move(rhs); }
 
@@ -273,6 +274,24 @@ namespace rv
 			if constexpr (D < V2::size() - 1)
 				do_operation_vector<V1, V2, op, D + 1>(lhs, rhs);
 		}
+
+		template<VectorType V1, SameSizeVectorType<V1> V2, size_t D = 0>
+		static constexpr bool vector_equal(const V1& lhs, const V2& rhs)
+		{
+			bool equal = lhs.get_element<D>() == rhs.get_element<D>();
+			if constexpr (D < V2::size() - 1)
+				equal = equal && vector_equal<V1, V2, D + 1>(lhs, rhs);
+			return equal;
+		}
+
+		template<VectorType V1, SameSizeVectorType<V1> V2, size_t D = 0>
+		static constexpr bool vector_not_equal(const V1& lhs, const V2& rhs)
+		{
+			bool nequal = lhs.get_element<D>() != rhs.get_element<D>();
+			if constexpr (D < V2::size() - 1)
+				nequal = nequal || vector_not_equal<V1, V2, D + 1>(lhs, rhs);
+			return nequal;
+		}
 	}
 
 	template<VectorType V, ConvertibleType<typename V::value_type> T> static constexpr V& operator+= (V& vector, const T& value) { detail::do_operation_constant<V, T, detail::add_self>(vector, value); return vector; }
@@ -295,6 +314,9 @@ namespace rv
 	template<VectorType V1, SameSizeVectorType<V1> V2> static constexpr V1 operator* (const V1& lhs, const V2& rhs) { V1 vector2 = lhs; vector2 *= rhs; return vector2; }
 	template<VectorType V1, SameSizeVectorType<V1> V2> static constexpr V1 operator/ (const V1& lhs, const V2& rhs) { V1 vector2 = lhs; vector2 /= rhs; return vector2; }
 
+	template<VectorType V1, SameSizeVectorType<V1> V2> static constexpr bool operator== (const V1& lhs, const V2& rhs) { return detail::vector_equal(lhs, rhs); }
+	template<VectorType V1, SameSizeVectorType<V1> V2> static constexpr bool operator!= (const V1& lhs, const V2& rhs) { return detail::vector_not_equal(lhs, rhs); }
+
 	typedef Vector<2, float> Vector2;
 	typedef Vector<3, float> Vector3;
 	typedef Vector<4, float> Vector4;
@@ -304,7 +326,7 @@ namespace rv
 
 	typedef Extent<2, size_t> Extent2;
 	typedef Extent<3, size_t> Extent3;
-	typedef Extent<2, size_t> Size2;
-	typedef Extent<3, size_t> Size3;
-	typedef Extent<2, size_t> Size;
+	typedef Extent<2, uint> Size2;
+	typedef Extent<3, uint> Size3;
+	typedef Extent<2, uint> Size;
 }

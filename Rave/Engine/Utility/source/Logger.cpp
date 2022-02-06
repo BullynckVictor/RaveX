@@ -2,12 +2,7 @@
 
 rv::DebugLogger rv::debug;
 
-void rv::Logger::Log(const char* message, Severity severity)
-{
-	Log(std::string(message), severity);
-}
-
-void rv::Logger::Log(const std::string& message, Severity severity)
+void rv::Logger::Log(const utf16_string& message, Severity severity)
 {
 	LogInfo info;
 	info.message = message;
@@ -78,12 +73,12 @@ const rv::TimeStamp& rv::LogEvent::Time() const
 	return header->info.stamp;
 }
 
-std::string& rv::LogEvent::Message()
+rv::utf16_string& rv::LogEvent::Message()
 {
 	return header->info.message;
 }
 
-const std::string& rv::LogEvent::Message() const
+const rv::utf16_string& rv::LogEvent::Message() const
 {
 	return header->info.message;
 }
@@ -93,12 +88,12 @@ rv::Severity rv::LogEvent::Severity() const
 	return header->info.severity;
 }
 
-std::string rv::LogEvent::Format() const
+rv::utf16_string rv::LogEvent::Format() const
 {
 	return header->info.Format();
 }
 
-void rv::LogEvent::Format(std::ostream& ss) const
+void rv::LogEvent::Format(std::wostream& ss) const
 {
 	header->info.Format(ss);
 }
@@ -137,60 +132,56 @@ rv::LogEvent rv::LogListener::GetEvent()
 #ifdef RV_DEBUG_LOGGER
 
 #include <iostream>
-void rv::DebugLogger::Log(const char* message, Severity severity)
-{
-	Log(std::string(message), severity);
-}
 
-void rv::DebugLogger::Log(const std::string& message, Severity severity)
+void rv::DebugLogger::Log(const utf16_string& message, Severity severity)
 {
 	WriteToSTD(message, severity);
 	Logger::Log(message, severity);
 }
 
-void rv::DebugLogger::WriteToSTD(const std::string& message, Severity severity)
+void rv::DebugLogger::WriteToSTD(const utf16_string& message, Severity severity)
 {
 	std::lock_guard guard(mutex);
 	LogInfo info;
 	info.message = message;
 	info.severity = severity;
-	info.Format(std::cout);
+	info.Format(std::wcout);
 	std::cout << '\n';
 }
 
 #endif
 
-std::string rv::LogInfo::Format() const
+rv::utf16_string rv::LogInfo::Format() const
 {
-	std::ostringstream ss;
+	std::wostringstream ss;
 	Format(ss);
 	return ss.str();
 }
 
-void rv::LogInfo::Format(std::ostream& ss) const
+void rv::LogInfo::Format(std::wostream& ss) const
 {
-	ss << '[';
+	ss << L'[';
 	if (stamp.hours() < 10)
-		ss << '0' << stamp.hours() << ':';
+		ss << L'0' << stamp.hours() << L':';
 	else
-		ss << stamp.hours() << ':';
+		ss << stamp.hours() << L':';
 	if (stamp.minutes() < 10)
-		ss << '0' << stamp.minutes() << ':';
+		ss << L'0' << stamp.minutes() << L':';
 	else
-		ss << stamp.minutes() << ':';
+		ss << stamp.minutes() << L':';
 	if (stamp.seconds() < 10)
-		ss << '0' << stamp.seconds() << "]\t";
+		ss << L'0' << stamp.seconds() << L"]\t";
 	else
-		ss << stamp.seconds() << "]\t";
+		ss << stamp.seconds() << L"]\t";
 
 	switch (severity)
 	{
-		case RV_SEVERITY_NULL:		ss << "<NULL>     "; break;
-		case RV_SEVERITY_INFO:		ss << "<INFO>     "; break;
-		case RV_SEVERITY_WARNING:	ss << "<WARNING>  "; break;
+		case RV_SEVERITY_NULL:		ss << L"<NULL>     "; break;
+		case RV_SEVERITY_INFO:		ss << L"<INFO>     "; break;
+		case RV_SEVERITY_WARNING:	ss << L"<WARNING>  "; break;
 		case RV_SEVERITY_ERROR:
-		case RV_SEVERITY_ALL:		ss << "<ERROR>    "; break;
+		case RV_SEVERITY_ALL:		ss << L"<ERROR>    "; break;
 	}
 
-	ss << message;
+	ss << message.c_str<wchar_t>();
 }

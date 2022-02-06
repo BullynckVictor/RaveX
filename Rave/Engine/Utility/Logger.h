@@ -21,10 +21,10 @@ namespace rv
 
 		Severity severity = RV_SEVERITY_NULL;
 		TimeStamp stamp;
-		std::string message;
+		utf16_string message;
 
-		std::string Format() const;
-		void Format(std::ostream& ss) const;
+		utf16_string Format() const;
+		void Format(std::wostream& ss) const;
 	};
 
 	struct LogQueue
@@ -40,16 +40,10 @@ namespace rv
 	public:
 		Logger() = default;
 
-		void Log(const char* message, Severity severity = RV_SEVERITY_INFO);
-		void Log(const std::string& message, Severity severity = RV_SEVERITY_INFO);
+		void Log(const utf16_string& message, Severity severity = RV_SEVERITY_INFO);
 
 		template<typename I>
-		void Log(const char* message, const I& data, Severity severity = RV_SEVERITY_INFO)
-		{
-			Log(std::string(message), data, severity);
-		}
-		template<typename I>
-		void Log(const std::string& message, const I& data, Severity severity = RV_SEVERITY_INFO)
+		void Log(const utf16_string& message, const I& data, Severity severity = RV_SEVERITY_INFO)
 		{
 			LogInfo info;
 			info.message = message;
@@ -102,13 +96,13 @@ namespace rv
 		TimeStamp& Time();
 		const TimeStamp& Time() const;
 
-		std::string& Message();
-		const std::string& Message() const;
+		utf16_string& Message();
+		const utf16_string& Message() const;
 
 		Severity Severity() const;
 
-		std::string Format() const;
-		void Format(std::ostream& ss) const;
+		utf16_string Format() const;
+		void Format(std::wostream& ss) const;
 
 		void Clear();
 
@@ -138,23 +132,17 @@ namespace rv
 	public:
 		DebugLogger() = default;
 
-		void Log(const char* message, Severity severity = RV_SEVERITY_INFO);
-		void Log(const std::string& message, Severity severity = RV_SEVERITY_INFO);
+		void Log(const utf16_string& message, Severity severity = RV_SEVERITY_INFO);
 
 		template<typename I>
-		void Log(const char* message, const I& data, Severity severity = RV_SEVERITY_INFO)
-		{
-			Log(std::string(message), data, severity);
-		}
-		template<typename I>
-		void Log(const std::string& message, const I& data, Severity severity = RV_SEVERITY_INFO)
+		void Log(const utf16_string& message, const I& data, Severity severity = RV_SEVERITY_INFO)
 		{
 			WriteToSTD(message, severity);
 			Logger::Log(message, data, severity);
 		}
 
 	private:
-		void WriteToSTD(const std::string& message, Severity severity);
+		void WriteToSTD(const utf16_string& message, Severity severity);
 	};
 
 #	else
@@ -164,13 +152,10 @@ namespace rv
 	public:
 		DebugLogger() = default;
 
-		void Log(const char* message, Severity severity = RV_SEVERITY_INFO) {}
-		void Log(const std::string& message, Severity severity = RV_SEVERITY_INFO) {}
+		void Log(const utf16_string& message, Severity severity = RV_SEVERITY_INFO) {}
 
 		template<typename I>
-		void Log(const char* message, const I& data, Severity severity = RV_SEVERITY_INFO) {}
-		template<typename I>
-		void Log(const std::string& message, const I& data, Severity severity = RV_SEVERITY_INFO) {}
+		void Log(const utf16_string& message, const I& data, Severity severity = RV_SEVERITY_INFO) {}
 	};
 
 #	endif

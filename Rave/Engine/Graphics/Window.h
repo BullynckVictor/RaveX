@@ -25,29 +25,24 @@ namespace rv
 
 	enum WindowOptions
 	{
-		RV_WINDOW_POSITION_DEFAULT	= make_flag<WindowOptions>(0),
-		RV_WINDOW_SIZE_DEFAULT		= make_flag<WindowOptions>(1),
-		RV_WINDOW_RESIZEABLE		= make_flag<WindowOptions>(2),
+		RV_WINDOW_RESIZEABLE = make_flag<WindowOptions>(0),
 	};
-
-	namespace detail
-	{
-		static constexpr Flags<WindowOptions> defaultWindowOptions = make_flags<WindowOptions>(RV_WINDOW_POSITION_DEFAULT, RV_WINDOW_SIZE_DEFAULT);
-	}
 
 	struct WindowDescriptor
 	{
 		WindowDescriptor();
-		WindowDescriptor(const utf16_string& title);
-		WindowDescriptor(const utf16_string& title, const Extent<2, uint>& size, Flags<WindowOptions> options = detail::defaultWindowOptions.without(RV_WINDOW_SIZE_DEFAULT));
-		WindowDescriptor(const utf16_string& title, const Vector<2, uint>& position, const Extent<2, uint>& size, Flags<WindowOptions> options = detail::defaultWindowOptions.without(make_flags<WindowOptions>(RV_WINDOW_POSITION_DEFAULT, RV_WINDOW_SIZE_DEFAULT)));
-		WindowDescriptor(utf16_string&& title, const Extent<2, uint>& size, Flags<WindowOptions> options = detail::defaultWindowOptions.without(RV_WINDOW_SIZE_DEFAULT));
-		WindowDescriptor(utf16_string&& title, const Vector<2, uint>& position, const Extent<2, uint>& size, Flags<WindowOptions> options = detail::defaultWindowOptions.without(make_flags<WindowOptions>(RV_WINDOW_POSITION_DEFAULT, RV_WINDOW_SIZE_DEFAULT)));
-		WindowDescriptor(utf16_string&& title);
+		WindowDescriptor(const utf16_string& title, WindowOptions options);
+		WindowDescriptor(const utf16_string& title, Flags<WindowOptions> options = {});
+		WindowDescriptor(const utf16_string& title, const Size& size, Flags<WindowOptions> options = {});
+		WindowDescriptor(const utf16_string& title, const Point& position, const Size& size, Flags<WindowOptions> options = {});
+		WindowDescriptor(utf16_string&& title, const Size& size, Flags<WindowOptions> options = {});
+		WindowDescriptor(utf16_string&& title, const Point& position, const Size& size, Flags<WindowOptions> options = {});
+		WindowDescriptor(utf16_string&& title, Flags<WindowOptions> options = {});
+		WindowDescriptor(utf16_string&& title, WindowOptions options);
 
 		utf16_string title;
 		Vector<2, uint> size;
-		Extent<2, uint> position;
+		Point position;
 		Flags<WindowOptions> options;
 	};
 
@@ -64,16 +59,36 @@ namespace rv
 		Result Render();
 
 		bool Open() const;
+		void Close();
+
+		Result Resize(const Size& size);
+		Result Resize(uint width, uint height);
+		Result SetPosition(const Point& position);
+		Result SetPosition(uint x, uint y);
+		Result SetPositionResize(const Point& position, const Size& size);
+
+		const Point& Position() const;
+		const Size& Size() const;
 
 	private:
 		static Win32Class windowClass;
+		static LRESULT CALLBACK StaticWindowSetupProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		Result Draw();
 
+		void SetResult(Result result);
+
+	private:
 		utf16_string title;
-		Extent<2, uint> size;
-		Vector<2, uint> position;
+		rv::Size size;
+		Point position;
 		DWORD styleEx = 0;
 		DWORD style = 0;
 		Flags<WindowOptions> options;
 		HWND hwnd = 0;
+		Result lastResult;
+		bool minimized = false;
+		uint dpi = 96;
 	};
 }

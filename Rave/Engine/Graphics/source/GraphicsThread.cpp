@@ -26,7 +26,7 @@ bool rv::GraphicsThread::FinishedCreating()
 
 void rv::GraphicsThread::Await()
 {
-	if (FinishedCreating())
+	if (SingleThreaded() || FinishedCreating())
 		return;
 	std::mutex mutex;
 	std::unique_lock lock(mutex);
@@ -40,7 +40,21 @@ bool rv::GraphicsThread::SingleThreaded()
 
 bool rv::GraphicsThread::MultiThreaded()
 {
-	return std::thread::hardware_concurrency() > 1;
+	return !SingleThreaded();
+}
+
+void rv::GraphicsThread::RenderSingleThreaded()
+{
+	if (SingleThreaded())
+	{
+		Result result;
+		for (auto* header = renderers.PeekHeader(); header; header = header->next)
+		{
+			result = header->info.render(header->data());
+			if (result.failed())
+				PostEvent(FailedResult(result));
+		}
+	}
 }
 
 void rv::GraphicsThread::Task()

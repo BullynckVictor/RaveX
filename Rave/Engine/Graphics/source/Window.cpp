@@ -1,6 +1,7 @@
 #include "Engine/Graphics/Window.h"
 #include "Engine/Utility/Error.h"
 #include "Engine/Utility/Safety.h"
+#include "Engine/Utility/Logger.h"
 
 rv::Win32Class rv::Window::windowClass;
 
@@ -34,19 +35,25 @@ ATOM rv::Win32Class::Identifier() const
 
 rv::WindowDescriptor::WindowDescriptor()
 	:
-	title(strvalid(u"RaveEngine Window")),
-	options(detail::defaultWindowOptions)
+	title(strvalid(u"RaveEngine Window"))
 {
 }
 
-rv::WindowDescriptor::WindowDescriptor(const utf16_string& title)
+rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, WindowOptions options)
 	:
 	title(title),
-	options(detail::defaultWindowOptions)
+	options(options)
 {
 }
 
-rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, const Extent<2, uint>& size, Flags<WindowOptions> options)
+rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, Flags<WindowOptions> options)
+	:
+	title(title),
+	options(options)
+{
+}
+
+rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, const Size& size, Flags<WindowOptions> options)
 	:
 	title(title),
 	size(size),
@@ -54,7 +61,7 @@ rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, const Extent<2
 {
 }
 
-rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, const Vector<2, uint>& position, const Extent<2, uint>& size, Flags<WindowOptions> options)
+rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, const Point& position, const Size& size, Flags<WindowOptions> options)
 	:
 	title(title),
 	size(size),
@@ -63,7 +70,7 @@ rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, const Vector<2
 {
 }
 
-rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Extent<2, uint>& size, Flags<WindowOptions> options)
+rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Size& size, Flags<WindowOptions> options)
 	:
 	title(std::move(title)),
 	size(size),
@@ -71,7 +78,7 @@ rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Extent<2, uin
 {
 }
 
-rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Vector<2, uint>& position, const Extent<2, uint>& size, Flags<WindowOptions> options)
+rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Point& position, const Size& size, Flags<WindowOptions> options)
 	:
 	title(std::move(title)),
 	position(position),
@@ -80,10 +87,17 @@ rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Vector<2, uin
 {
 }
 
-rv::WindowDescriptor::WindowDescriptor(utf16_string&& title)
+rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, Flags<WindowOptions> options)
 	:
 	title(std::move(title)),
-	options(detail::defaultWindowOptions)
+	options(options)
+{
+}
+
+rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, WindowOptions options)
+	:
+	title(title),
+	options(options)
 {
 }
 
@@ -96,32 +110,38 @@ rv::Result rv::Window::Create(Window& window, Descriptor&& descriptor)
 	rv_result;
 
 	if (!windowClass.Instance())
-		rv_rif(Win32Class::Create(windowClass, u"Rave Window Class", DefWindowProc));
+		rv_rif(Win32Class::Create(windowClass, u"Rave Window Class", StaticWindowSetupProc));
 
 	window.title = std::move(descriptor.title);
+	window.dpi = GetDpiForSystem();
 	window.size = descriptor.size;
 	window.position = descriptor.position;
 	window.options = descriptor.options;
 	window.styleEx = WS_EX_APPWINDOW;
-	window.style = WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU;
-
-	Extent<2, int> size = CW_USEDEFAULT;
-	
-	if (!window.options.contain(RV_WINDOW_SIZE_DEFAULT))
+	window.style = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU;
+	if (descriptor.options.contain(RV_WINDOW_RESIZEABLE))
 	{
-		RECT rect {};
-		rect.left = safe_cast<long>(window.position.x);
-		rect.top = safe_cast<long>(window.position.y);
-		rect.right = safe_cast<long>(window.position.x + window.size.width);
-		rect.bottom = safe_cast<long>(window.position.y + window.size.height);
-		rif_check_last_msg(AdjustWindowRectEx(&rect, window.style, false, window.styleEx), strvalid(u8"Unable to adjust window rectangle"));
-		size.width = rect.right - rect.left;
-		size.height = rect.bottom - rect.top;
+		window.style |= WS_MAXIMIZEBOX;
+		window.style |= WS_THICKFRAME;
 	}
 
-	Point position = window.position;
-	if (window.options.contain(RV_WINDOW_POSITION_DEFAULT))
-		position = CW_USEDEFAULT;
+	Extent<2, int> size = CW_USEDEFAULT;
+	Point position = CW_USEDEFAULT;
+	
+	RECT rect{};
+	rect.left = safe_cast<long>(window.position.x);
+	rect.top = safe_cast<long>(window.position.y);
+	rect.right = safe_cast<long>(window.position.x + safe_cast<int>(window.size.width));
+	rect.bottom = safe_cast<long>(window.position.y + safe_cast<int>(window.size.height));
+	rif_check_last_msg(AdjustWindowRectExForDpi(&rect, window.style, false, window.styleEx, window.dpi), strvalid(u8"Unable to adjust window rectangle"));
+	
+	size.width = window.size.width ? (rect.right - rect.left) : CW_USEDEFAULT;
+	size.height = window.size.height ? (rect.bottom - rect.top) : CW_USEDEFAULT;
+	position.x = window.position.x ? rect.left : CW_USEDEFAULT;
+	position.y = window.position.y ? rect.top : CW_USEDEFAULT;
+
+	window.position *= window.dpi / 96;
+	window.size *= window.dpi / 96;
 
 	rif_check_last_msg(window.hwnd = CreateWindowEx(
 		window.styleEx,
@@ -148,6 +168,8 @@ rv::Result rv::Window::Render()
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+		if (lastResult.failed())
+			return lastResult;
 	}
 	return success;
 }
@@ -155,4 +177,144 @@ rv::Result rv::Window::Render()
 bool rv::Window::Open() const
 {
 	return hwnd;
+}
+
+void rv::Window::Close()
+{
+	PostMessage(hwnd, WM_CLOSE, 0, 0);
+}
+
+rv::Result rv::Window::Resize(const rv::Size& size)
+{
+	return rv_check_condition(SetWindowPos(
+		hwnd, 0, 
+		position.x, position.y, 
+		safe_cast<int>(size.width * dpi / 96), 
+		safe_cast<int>(size.width * dpi / 96), 
+		SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS
+	));
+}
+
+rv::Result rv::Window::Resize(uint width, uint height)
+{
+	return Resize(rv::Size(width, height));
+}
+
+rv::Result rv::Window::SetPosition(const Point& position)
+{
+	return rv_check_condition(SetWindowPos(
+		hwnd, 0, 
+		position.x * dpi / 96, 
+		position.y * dpi / 96, 
+		size.width, size.width, 
+		SWP_NOZORDER | SWP_NOSIZE | SWP_ASYNCWINDOWPOS
+	));
+}
+
+rv::Result rv::Window::SetPosition(uint x, uint y)
+{
+	return SetPosition(Point(x, y));
+}
+
+rv::Result rv::Window::SetPositionResize(const Point& position, const rv::Size& size)
+{
+	return rv_check_condition(SetWindowPos(
+		hwnd, 0,
+		position.x * dpi / 96,
+		position.y * dpi / 96,
+		safe_cast<int>(size.width * dpi / 96),
+		safe_cast<int>(size.width * dpi / 96),
+		SWP_NOZORDER | SWP_ASYNCWINDOWPOS
+	));
+}
+
+const rv::Point& rv::Window::Position() const
+{
+	return position;
+}
+
+const rv::Size& rv::Window::Size() const
+{
+	return size;
+}
+
+LRESULT rv::Window::StaticWindowSetupProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (msg == WM_CREATE)
+	{
+		CREATESTRUCT* create = reinterpret_cast<CREATESTRUCT*>(lParam);
+		if (create)
+		{
+			SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(create->lpCreateParams));
+			SetWindowLongPtr(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(StaticWindowProc));
+		}
+	}
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+LRESULT rv::Window::StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	Window* window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+	if (window)
+		return window->WindowProc(hwnd, msg, wParam, lParam);
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+LRESULT rv::Window::WindowProc(HWND, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+		case WM_CLOSE:
+		{
+			SetResult(rv_check_condition_msg(DestroyWindow(hwnd), strvalid(u"Unable to destroy Window")));
+		}
+		return 0;
+		case WM_DESTROY:
+		{
+			hwnd = nullptr;
+		}
+		return 0;
+		case WM_PAINT:
+//		case WM_MOVING:
+//		case WM_SIZING:
+		{
+			SetResult(Draw());
+		}
+		return 0;
+
+		case WM_DPICHANGED:
+		{
+			dpi = HIWORD(wParam);
+			RECT* rect = reinterpret_cast<LPRECT>(lParam);
+			SetResult(rv_assert_msg(rect, strvalid(u"WM_DPICHANGED has nullptr as lParam")));
+			if (rect)
+				SetResult(rv_check_condition(SetWindowPos(hwnd, 0, rect->left, rect->top, rect->right - rect->left, rect->bottom - rect->top, SWP_NOZORDER)));
+		}
+		return 0;
+		case WM_SIZE:
+		{
+			if (wParam == SIZE_MINIMIZED)
+				minimized = true;
+			else
+				minimized = false;
+
+			size.width = LOWORD(lParam);
+			size.height = HIWORD(lParam);
+		}
+		return 0;
+	}
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+rv::Result rv::Window::Draw()
+{
+	rv_result;
+
+	return result;
+}
+
+void rv::Window::SetResult(Result result)
+{
+	if (result.severity() > lastResult.severity())
+		lastResult = result;
 }
