@@ -1,7 +1,10 @@
 ﻿#include <iostream>
 #include "Engine/Rave.h"
 
-static constexpr bool failed = FAILED(ERROR_ACCOUNT_DISABLED);
+struct TestApp
+{
+
+};
 
 rv::Result rv_main()
 {
@@ -11,11 +14,11 @@ rv::Result rv_main()
 	rv_rif(rv::Engine::Create(engine));
 	rv::EventListener threadListener(engine.graphics.thread);
 
-	rv::Window& window = engine.graphics.CreateWindowRenderer("Hello from main.cpp!");
+	rv::Window& window = engine.graphics.CreateWindowRenderer("Hello from main.cpp!", rv::RV_WINDOW_RESIZEABLE);
 
 	engine.graphics.thread.Await();
 
-	rv_log(rv::str16(L"Window size: (", window.Size().width, ", ", window.Size().height, ")"));
+	window.SetTitle(u8"Hello from the main thread!");
 	while (window.Open())
 	{
 		engine.graphics.thread.RenderSingleThreaded();

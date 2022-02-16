@@ -3,6 +3,8 @@
 #include "Engine/Utility/Result.h"
 #include "Engine/Utility/String.h"
 #include "Engine/Utility/Vector.h"
+#include <map>
+#include <mutex>
 
 namespace rv
 {
@@ -51,8 +53,13 @@ namespace rv
 	public:
 		using Descriptor = WindowDescriptor;
 
-		Window() = default;
+		Window();
+		Window(const Window&) = delete;
+		Window(Window&&) noexcept = default;
 		~Window();
+
+		Window& operator= (const Window&) = delete;
+		Window& operator= (Window&&) noexcept = default;
 
 		static Result Create(Window& window, Descriptor&& descriptor = {});
 
@@ -66,6 +73,9 @@ namespace rv
 		Result SetPosition(const Point& position);
 		Result SetPosition(uint x, uint y);
 		Result SetPositionResize(const Point& position, const Size& size);
+
+		void SetTitle(const utf16_string& title);
+		void SetTitle(utf16_string&& title);
 
 		const Point& Position() const;
 		const Size& Size() const;
@@ -90,5 +100,9 @@ namespace rv
 		Result lastResult;
 		bool minimized = false;
 		uint dpi = 96;
+		utf16_string newTitle;
+		bool updatedTitle = false;
+		std::unique_ptr<std::mutex> mutex;
+		bool drawn = false;
 	};
 }

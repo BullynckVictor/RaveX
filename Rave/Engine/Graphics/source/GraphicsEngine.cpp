@@ -1,8 +1,11 @@
 #include "Engine/Graphics/GraphicsEngine.h"
+#include "Engine/Utility/Error.h"
+#include "Engine/Utility/Logger.h"
 
 rv::Result rv::GraphicsEngine::Create(GraphicsEngine& graphics)
 {
-	return success;
+	rv_result;
+	return result;
 }
 
 rv::Window& rv::GraphicsEngine::CreateWindowRenderer(WindowDescriptor&& descriptor)

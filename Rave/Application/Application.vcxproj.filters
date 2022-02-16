@@ -22,4 +22,9 @@
   <ItemGroup>
     <Manifest Include=".manifest" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\icon.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

@@ -24,5 +24,7 @@ namespace rv
 
 	public:
 		GraphicsThread thread;
+
+	private:
 	};
 }

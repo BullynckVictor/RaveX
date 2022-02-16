@@ -10,7 +10,10 @@ rv::GraphicsThread::GraphicsThread()
 
 rv::GraphicsThread::~GraphicsThread()
 {
-	shouldClose = true;
+	{
+		std::lock_guard lock(queueMutex);
+		shouldClose = true;
+	}
 	if (thread.joinable())
 	{
 		wakeUpSignal.notify_one();

@@ -116,10 +116,12 @@ namespace rv
 
 #define rv_rif(res)								if ((result = (res)).failed()) return result;
 #define rif_check_condition(condition)			rv_rif(rv_check_condition(condition))
+#define rif_assert(condition)					rv_rif(rv_assert(condition))
 #define rif_check_file(file)					rv_rif(rv_check_file(file))
 #define rif_check_hr(hr)						rv_rif(rv_check_hr(hr))
 #define rif_check_last(condition)				rv_rif(rv_check_last(condition))
 #define rif_check_condition_msg(condition, msg)	rv_rif(rv_check_condition_msg(condition, msg))
+#define rif_assert_msg(condition, msg)			rv_rif(rv_assert_msg(condition, msg))
 #define rif_check_file_msg(file, msg)			rv_rif(rv_check_file_msg(file, msg))
 #define rif_check_hr_msg(hr, msg)				rv_rif(rv_check_hr_msg(hr, msg))
 #define rif_check_last_msg(condition, msg)		rv_rif(rv_check_last_msg(condition, msg))

@@ -7,10 +7,13 @@ rv::Win32Class rv::Window::windowClass;
 
 rv::Result rv::Win32Class::Create(Win32Class& window, utf16_cstring name, WNDPROC windowProc)
 {
+	rv_result;
 	window.windowClass.lpszClassName = name.c_str<wchar_t>();
 	window.windowClass.lpfnWndProc = windowProc;
 	window.windowClass.hInstance = GetModuleHandle(nullptr);
-	return rv_check_last_msg(window.atom = RegisterClassEx(&window.windowClass), str16(strvalid("Unable to register win32 class \""), name, u'\"'));
+	window.windowClass.hCursor = static_cast<HCURSOR>(LoadImage(nullptr, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED));
+	rif_assert_msg(window.windowClass.hCursor, strvalid(u"Unable to load cursor"));
+	return rv_check_last_msg(window.atom = RegisterClassEx(&window.windowClass), str16(strvalid(u"Unable to register win32 class \""), name, u'\"'));
 }
 
 const WNDCLASSEX& rv::Win32Class::Class() const
@@ -101,8 +104,15 @@ rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, WindowOptions optio
 {
 }
 
+rv::Window::Window()
+	:
+	mutex(new std::mutex())
+{
+}
+
 rv::Window::~Window()
 {
+	Close();
 }
 
 rv::Result rv::Window::Create(Window& window, Descriptor&& descriptor)
@@ -164,6 +174,7 @@ rv::Result rv::Window::Create(Window& window, Descriptor&& descriptor)
 rv::Result rv::Window::Render()
 {
 	MSG msg;
+	drawn = false;
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
@@ -171,7 +182,14 @@ rv::Result rv::Window::Render()
 		if (lastResult.failed())
 			return lastResult;
 	}
-	return success;
+	{
+		std::lock_guard guard(*mutex);
+		if (updatedTitle)
+			title = std::move(newTitle);
+	}
+	if (drawn)
+		return success;
+	return Draw();
 }
 
 bool rv::Window::Open() const
@@ -228,6 +246,20 @@ rv::Result rv::Window::SetPositionResize(const Point& position, const rv::Size& 
 	));
 }
 
+void rv::Window::SetTitle(const utf16_string& title)
+{
+	std::lock_guard guard(*mutex);
+	newTitle = title;
+	updatedTitle = true;
+}
+
+void rv::Window::SetTitle(utf16_string&& title)
+{
+	std::lock_guard guard(*mutex);
+	newTitle = std::move(title);
+	updatedTitle = true;
+}
+
 const rv::Point& rv::Window::Position() const
 {
 	return position;
@@ -274,9 +306,8 @@ LRESULT rv::Window::WindowProc(HWND, UINT msg, WPARAM wParam, LPARAM lParam)
 			hwnd = nullptr;
 		}
 		return 0;
-		case WM_PAINT:
-//		case WM_MOVING:
-//		case WM_SIZING:
+		case WM_MOVING:
+		case WM_SIZING:
 		{
 			SetResult(Draw());
 		}

@@ -611,6 +611,7 @@ namespace rv
 		template<encoding::SameCharacterType<C> C2>	constexpr encoded_cstring(const C2* string) : string(reinterpret_cast<const C*>(string)) {}
 		template<>									constexpr encoded_cstring(const C* string) : string(string) {}
 
+		constexpr operator bool() { return string; }
 		constexpr bool empty() const { return !string; }
 		constexpr size_t character_size() const { if (empty()) return 0; const C* s = string;  while (*s) ++s; return s - string; }
 		constexpr size_t size() const { size_t s = 0;  for (auto it = begin(); it != end(); ++it) ++s; return s; }
@@ -1123,6 +1124,7 @@ namespace rv
 		encoded_iterator<C> begin()	const { return data(); }
 		encoded_iterator<C> end()	const { return data() + string.size(); }
 
+		constexpr operator bool() { return string; }
 		constexpr bool empty() const { return string.empty(); }
 		constexpr size_t character_size() const { return string.size(); }
 		constexpr size_t size() const { size_t s = 0;  for (auto it = begin(); it != end(); ++it) ++s; return s; }
@@ -1145,6 +1147,7 @@ namespace rv
 		}
 
 		const std::basic_string<C>& std_string() const { return string; }
+
 
 	private:
 		std::basic_string<C> string;
