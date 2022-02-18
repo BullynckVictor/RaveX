@@ -7,10 +7,8 @@
 #include <deque>
 #include <mutex>
 
-#ifndef RV_DEBUG_LOGGER
-#if defined(RV_DEBUG) and not defined(RV_NO_DEBUG_LOGGER)
+#if not defined(RV_DEBUG_LOGGER) and defined(RV_DEBUG) and not defined(RV_NO_DEBUG_LOGGER)
 #define RV_DEBUG_LOGGER
-#endif
 #endif
 
 namespace rv

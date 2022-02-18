@@ -2,6 +2,8 @@
 #include "Engine/Utility/Result.h"
 #include "Engine/Graphics/GraphicsThread.h"
 #include "Engine/Graphics/Window.h"
+#include "Engine/Graphics/Instance.h"
+#include "Engine/Graphics/DebugMessenger.h"
 
 namespace rv
 {
@@ -22,9 +24,13 @@ namespace rv
 		Window& CreateWindowRenderer(utf16_string&& title, Flags<WindowOptions> options = {});
 		Window& CreateWindowRenderer(utf16_string&& title, WindowOptions options);
 
+		Result CheckDebug();
+
 	public:
 		GraphicsThread thread;
 
 	private:
+		Instance instance;
+		DebugMessenger debug;
 	};
 }

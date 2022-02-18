@@ -1,10 +1,6 @@
 ﻿#include <iostream>
 #include "Engine/Rave.h"
 
-struct TestApp
-{
-
-};
 
 rv::Result rv_main()
 {
@@ -14,7 +10,7 @@ rv::Result rv_main()
 	rv_rif(rv::Engine::Create(engine));
 	rv::EventListener threadListener(engine.graphics.thread);
 
-	rv::Window& window = engine.graphics.CreateWindowRenderer("Hello from main.cpp!", rv::RV_WINDOW_RESIZEABLE);
+	rv::Window& window = engine.graphics.CreateWindowRenderer("Rave Window", rv::Size(800, 500), rv::RV_WINDOW_RESIZEABLE);
 
 	engine.graphics.thread.Await();
 
@@ -25,6 +21,8 @@ rv::Result rv_main()
 		while (rv::Event e = threadListener.GetEvent())
 			if (e.IsType<rv::FailedResult>())
 				return e.Get<rv::FailedResult>().result;
+		if constexpr (rv::DebugMessenger::enabled)
+			rv_rif(engine.graphics.CheckDebug());
 	}
 
 	return result;

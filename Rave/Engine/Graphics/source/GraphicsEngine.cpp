@@ -5,6 +5,9 @@
 rv::Result rv::GraphicsEngine::Create(GraphicsEngine& graphics)
 {
 	rv_result;
+	rv_rif(Instance::Create(graphics.instance));
+	if constexpr (graphics.debug.enabled)
+		rv_rif(DebugMessenger::Create(graphics.debug, graphics.instance));
 	return result;
 }
 
@@ -21,3 +24,8 @@ rv::Window& rv::GraphicsEngine::CreateWindowRenderer(utf16_string&& title, const
 rv::Window& rv::GraphicsEngine::CreateWindowRenderer(utf16_string&& title, const Vector<2, uint>& position, const Extent<2, uint>& size, Flags<WindowOptions> options) { return CreateWindowRenderer(WindowDescriptor(std::move(title), position, size, options)); }
 rv::Window& rv::GraphicsEngine::CreateWindowRenderer(utf16_string&& title, Flags<WindowOptions> options) { return CreateWindowRenderer(WindowDescriptor(std::move(title), options)); }
 rv::Window& rv::GraphicsEngine::CreateWindowRenderer(utf16_string&& title, WindowOptions options) { return CreateWindowRenderer(std::move(title), Flags<WindowOptions>(options)); }
+
+rv::Result rv::GraphicsEngine::CheckDebug()
+{
+	return debug.CheckResult();
+}

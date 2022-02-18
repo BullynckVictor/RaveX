@@ -47,15 +47,16 @@ namespace rv
 	class Result
 	{
 	public:
-		constexpr Result() : code((RV_SEVERITY_INFO & 0b111) | (global_result.hash() & ~0b111)) {}
-		constexpr Result(Severity severity, const char* type) : code((severity & 0b111) | (hash<u32>(type) & ~0b111)) {}
-		constexpr Result(Severity severity, const Identifier32& type) : code((severity & 0b111) | (type.hash() & ~0b111)) {}
+		constexpr Result() : code(global_result.hash()), sev(RV_SEVERITY_INFO) {}
+		constexpr Result(Severity severity, const char* type) : code(rv::hash<u32>(type)), sev(severity) {}
+		constexpr Result(Severity severity, const Identifier32& type) : code(type.hash()), sev(severity) {}
 
-		constexpr Severity severity() const { return static_cast<Severity>(code & 0b111); }
+		constexpr Severity severity() const { return sev; }
 		constexpr u32 data() const { return code; }
+		constexpr u32 hash() const { return code; }
 
-		constexpr bool operator== (const Result& rhs) const { return code == rhs.code; }
-		constexpr bool operator== (const Identifier32& type) const { return (code & ~0b111) == (type.hash() & ~0b111); }
+		constexpr bool operator== (const Result& rhs) const { return code == rhs.code && sev == rhs.sev; }
+		constexpr bool operator== (const Identifier32& type) const { return code == type.hash(); }
 
 		constexpr bool succeeded(Flags<Severity> success = make_flags<Severity>(RV_SEVERITY_INFO)) const { return success.contains(severity()); }
 		constexpr bool failed(Flags<Severity> failure = make_flags<Severity>(RV_SEVERITY_WARNING, RV_SEVERITY_ERROR)) const { return failure.contains(severity()); }
@@ -69,6 +70,7 @@ namespace rv
 
 	private:
 		u32 code;
+		Severity sev;
 	};
 
 	static constexpr Result success = Result(RV_SEVERITY_INFO, global_result);

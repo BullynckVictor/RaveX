@@ -14,8 +14,8 @@ rv::ErrorInfo::ErrorInfo(const char* source, uint64 line)
 rv::utf16_string rv::ErrorInfo::Describe() const
 {
 	return str16(
-		u"File:\t\t", RelativeToSolution(source).c_str(), u'\n',
-		u"Line:\t\t", line, u"\nDescription:\t"
+		strvalid(u"File:\t\t"), RelativeToSolution(source).c_str(), u'\n',
+		strvalid(u"Line:\t\t"), line, strvalid(u"\nDescription:\t")
 	);
 }
 
@@ -31,7 +31,7 @@ rv::utf16_string rv::ConditionInfo::Describe() const
 {
 	return str16(
 		ErrorInfo::Describe(),
-		u"Condition \"", name, condition ? u"\" succeeded" : u"\" failed"
+		strvalid(u"Condition \""), name, condition ? strvalid(u"\" succeeded") : strvalid(u"\" failed")
 	);
 }
 
@@ -53,7 +53,7 @@ rv::utf16_string rv::FileInfo::Describe() const
 {
 	return str16(
 		ErrorInfo::Describe(),
-		u"Failed to open file ", file
+		strvalid(u"Failed to open file "), file
 	);
 }
 
@@ -69,9 +69,26 @@ rv::utf16_string rv::HrInfo::Describe() const
 	return str16(
 		ErrorInfo::Describe(),
 		_com_error(result).ErrorMessage(), u'\n',
-		u"Result:\t\t", std::hex, u"0x", result
+		strvalid(u"Result:\t\t"), std::hex, strvalid(u"0x"), result
 	);
 }
+
+rv::VkrInfo::VkrInfo(Vkr result, const char* source, uint64 line)
+	:
+	ErrorInfo(source, line),
+	result(result)
+{
+}
+
+rv::utf16_string rv::VkrInfo::Describe() const
+{
+	return str16(
+		ErrorInfo::Describe(),
+		result.description16(), u'\n',
+		strvalid(u"Result:\t\t"), result.name8()
+	);
+}
+
 
 rv::Result rv::check_condition(bool condition, const char* name, const char* source, uint64 line)
 {
@@ -112,7 +129,6 @@ rv::Result rv::check_assertion(bool assertion, const char* name, const char* sou
 
 rv::Result rv::check_file(const std::filesystem::path& path, const char* source, uint64 line)
 {
-
 	return check_file(path, source, line, {});
 }
 
@@ -155,4 +171,21 @@ rv::Result rv::check_last(bool condition, const char* source, uint64 line, utf16
 	if (condition)
 		return succeeded_hr;
 	return check_hr(HRESULT_FROM_WIN32(GetLastError()), source, line, std::move(message));
+}
+
+rv::Result rv::check_vkr(Vkr result, const char* source, uint64 line)
+{
+	return check_vkr(result, source, line, {});
+}
+
+rv::Result rv::check_vkr(Vkr result, const char* source, uint64 line, utf16_string&& message)
+{
+	Severity severity = result.severity();
+	if (severity == RV_SEVERITY_INFO)
+		return succeeded_vkr;
+
+	if constexpr (resultHandler.enabled)
+		resultHandler.PushResult(Result(severity, vkr_result), std::move(message), VkrInfo(result, source, line));
+
+	return Result(severity, vkr_result);
 }

@@ -168,6 +168,8 @@ rv::Result rv::Window::Create(Window& window, Descriptor&& descriptor)
 	if (window.hwnd)
 		rif_check_last_msg(ShowWindow(window.hwnd, SW_SHOWNORMAL), str16(strvalid(u"Unable to show window \""), window.title, u'\"'));
 
+	rv_log(str16(strvalid(u8"Created window \""), window.title, u'\"'));
+
 	return result;
 }
 
@@ -185,7 +187,11 @@ rv::Result rv::Window::Render()
 	{
 		std::lock_guard guard(*mutex);
 		if (updatedTitle)
+		{
 			title = std::move(newTitle);
+			SetWindowText(hwnd, title.c_str<wchar_t>());
+		}
+		updatedTitle = false;
 	}
 	if (drawn)
 		return success;
@@ -317,7 +323,8 @@ LRESULT rv::Window::WindowProc(HWND, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 			dpi = HIWORD(wParam);
 			RECT* rect = reinterpret_cast<LPRECT>(lParam);
-			SetResult(rv_assert_msg(rect, strvalid(u"WM_DPICHANGED has nullptr as lParam")));
+			if constexpr (build.debug)
+				SetResult(rv_check_condition_msg(rect, strvalid(u"WM_DPICHANGED has nullptr as lParam")));
 			if (rect)
 				SetResult(rv_check_condition(SetWindowPos(hwnd, 0, rect->left, rect->top, rect->right - rect->left, rect->bottom - rect->top, SWP_NOZORDER)));
 		}
