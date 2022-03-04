@@ -14,7 +14,7 @@ rv::Result rv_main()
 
 	engine.graphics.thread.Await();
 
-	window.SetTitle(u8"Hello from the main thread!");
+	window.SetTitle(u"Hello from the main thread!");
 	while (window.Open())
 	{
 		engine.graphics.thread.RenderSingleThreaded();

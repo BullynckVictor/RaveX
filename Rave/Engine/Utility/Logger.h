@@ -166,11 +166,12 @@ namespace rv
 #define rv_log_info(msg)			rv::debug.Log(msg, rv::RV_SEVERITY_INFO)
 #define rv_log_warning(msg)			rv::debug.Log(msg, rv::RV_SEVERITY_WARNING)
 #define rv_log_error(msg)			rv::debug.Log(msg, rv::RV_SEVERITY_ERROR)
+#define rv_log_value(value)			rv::debug.Log(rv::str16(rv::strvalid(u#value u": "), value))
 
-#define rv_logstr(...)				rv::debug.Log(rv::str(__VA_ARGS__))
-#define rv_logstr_info(...)			rv::debug.Log(rv::str(__VA_ARGS__), rv::RV_SEVERITY_INFO)
-#define rv_logstr_warning(...)		rv::debug.Log(rv::str(__VA_ARGS__), rv::RV_SEVERITY_WARNING)
-#define rv_logstr_error(...)		rv::debug.Log(rv::str(__VA_ARGS__), rv::RV_SEVERITY_ERROR)
+#define rv_logstr(...)				rv::debug.Log(rv::str16(__VA_ARGS__))
+#define rv_logstr_info(...)			rv::debug.Log(rv::str16(__VA_ARGS__), rv::RV_SEVERITY_INFO)
+#define rv_logstr_warning(...)		rv::debug.Log(rv::str16(__VA_ARGS__), rv::RV_SEVERITY_WARNING)
+#define rv_logstr_error(...)		rv::debug.Log(rv::str16(__VA_ARGS__), rv::RV_SEVERITY_ERROR)
 #else
 #define rv_log(msg)			
 #define rv_log_info(msg)	

@@ -39,6 +39,9 @@ std::vector<const char*> rv::InstanceValidationLayers::DefaultLayers()
 
 bool rv::InstanceValidationLayers::Supported() const
 {
+	if (layers.empty())
+		return true;
+
 	u32 count = 0;
 	Vkr result = vkEnumerateInstanceLayerProperties(&count, nullptr);
 	if (result.failed())
@@ -83,6 +86,33 @@ std::vector<const char*> rv::InstanceExtensions::DefaultExtensions()
 
 bool rv::InstanceExtensions::Supported() const
 {
+	if (extensions.empty())
+		return true;
+
+	u32 count = 0;
+	Vkr result = vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+	if (result.failed())
+		return false;
+
+	std::vector<VkExtensionProperties> available(count);
+	result = vkEnumerateInstanceExtensionProperties(nullptr, &count, available.data());
+	if (result.failed())
+		return false;
+
+	for (const char* extension : extensions)
+	{
+		bool supported = false;
+		for (const auto& e : available)
+		{
+			if (detail::byte_string_equal(extension, e.extensionName))
+			{
+				supported = true;
+				break;
+			}
+		}
+		if (!supported)
+			return false;
+	}
 	return true;
 }
 

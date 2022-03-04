@@ -180,6 +180,7 @@
     <ClCompile Include="Core\source\Engine.cpp" />
     <ClCompile Include="Core\source\Main.cpp" />
     <ClCompile Include="Graphics\source\DebugMessenger.cpp" />
+    <ClCompile Include="Graphics\source\Device.cpp" />
     <ClCompile Include="Graphics\source\GraphicsEngine.cpp" />
     <ClCompile Include="Graphics\source\GraphicsThread.cpp" />
     <ClCompile Include="Graphics\source\Instance.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="Core\Main.h" />
     <ClInclude Include="Core\Windows.h" />
     <ClInclude Include="Graphics\DebugMessenger.h" />
+    <ClInclude Include="Graphics\Device.h" />
     <ClInclude Include="Graphics\GraphicsEngine.h" />
     <ClInclude Include="Graphics\GraphicsThread.h" />
     <ClInclude Include="Graphics\Instance.h" />
@@ -216,6 +218,7 @@
     <ClInclude Include="Utility\Hash.h" />
     <ClInclude Include="Utility\Identifier.h" />
     <ClInclude Include="Utility\Logger.h" />
+    <ClInclude Include="Utility\Optional.h" />
     <ClInclude Include="Utility\Queue.h" />
     <ClInclude Include="Utility\Result.h" />
     <ClInclude Include="Utility\ResultHandler.h" />

@@ -29,6 +29,7 @@ namespace rv
 	}
 
 	template<typename T1, typename T2>
+	requires std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2>
 	static constexpr T1 safe_cast(const T2& source)
 	{
 		if constexpr (std::is_floating_point_v<T1>)
@@ -36,4 +37,7 @@ namespace rv
 		else
 			return static_cast<T1>(detail::bounds_cast<T1>(detail::signed_cast<T1, T2>(source)));
 	}
+
+	template<typename T>
+	static constexpr T max_value() { return std::numeric_limits<T>::max(); };
 }

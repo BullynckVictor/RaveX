@@ -4,6 +4,7 @@
 #include "Engine/Graphics/Window.h"
 #include "Engine/Graphics/Instance.h"
 #include "Engine/Graphics/DebugMessenger.h"
+#include "Engine/Graphics/Device.h"
 
 namespace rv
 {
@@ -32,5 +33,6 @@ namespace rv
 	private:
 		Instance instance;
 		DebugMessenger debug;
+		Device device;
 	};
 }

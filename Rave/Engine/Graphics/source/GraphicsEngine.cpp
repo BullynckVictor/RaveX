@@ -8,6 +8,7 @@ rv::Result rv::GraphicsEngine::Create(GraphicsEngine& graphics)
 	rv_rif(Instance::Create(graphics.instance));
 	if constexpr (graphics.debug.enabled)
 		rv_rif(DebugMessenger::Create(graphics.debug, graphics.instance));
+	rv_rif(Device::Create(graphics.device, graphics.instance));
 	return result;
 }
 
