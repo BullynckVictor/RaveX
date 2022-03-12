@@ -116,9 +116,28 @@ bool rv::InstanceExtensions::Supported() const
 	return true;
 }
 
+rv::Instance::Instance(Instance&& rhs) noexcept
+	:
+	instance(move_ptr(rhs.instance)),
+	app(rhs.app),
+	extensions(std::move(rhs.extensions)),
+	validation(std::move(rhs.validation))
+{
+}
+
 rv::Instance::~Instance()
 {
 	Release();
+}
+
+rv::Instance& rv::Instance::operator=(Instance&& rhs) noexcept
+{
+	Release();
+	instance = move_ptr(rhs.instance);
+	app = rhs.app;
+	extensions = std::move(rhs.extensions);
+	validation = std::move(rhs.validation);
+	return *this;
 }
 
 rv::Result rv::Instance::Create(Instance& instance, const InstanceExtensions& extensions, const InstanceValidationLayers& validation, const ApplicationInfo& app)

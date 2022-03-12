@@ -19,6 +19,9 @@ namespace rv
 		Result Result() const;
 		utf16_string Describe() const;
 
+		bool Valid() const;
+		operator bool() const;
+
 		VkDebugUtilsMessageSeverityFlagBitsEXT severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT;
 		std::string message;
 	};
@@ -47,6 +50,10 @@ namespace rv
 		const Instance* instance = nullptr;
 
 		Result CheckResult();
+		VulkanDebugMessage GetNextMessage();
+
+		static Result CheckStaticResult();
+		static VulkanDebugMessage GetNextStaticMessage();
 
 #ifndef RV_DEBUG_MESSENGER
 		static constexpr bool enabled = false;
@@ -56,6 +63,8 @@ namespace rv
 	private:
 		std::unique_ptr<std::mutex> mutex;
 		std::deque<VulkanDebugMessage> messages;
+		static std::deque<VulkanDebugMessage> staticMessages;
+		static std::mutex staticMutex;
 #endif
 	private:
 		static constexpr Flags<VkDebugUtilsMessageSeverityFlagBitsEXT> defaultFlags = make_flags<VkDebugUtilsMessageSeverityFlagBitsEXT>(

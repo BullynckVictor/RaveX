@@ -27,12 +27,14 @@ namespace rv
 
 		Result CheckDebug();
 
-	public:
-		GraphicsThread thread;
+		void Release();
 
 	private:
 		Instance instance;
 		DebugMessenger debug;
 		Device device;
+
+	public:
+		GraphicsThread thread;
 	};
 }

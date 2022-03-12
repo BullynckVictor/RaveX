@@ -4,6 +4,8 @@
 
 #ifdef RV_DEBUG_LOGGER
 static constexpr bool debugLogger = true;
+std::deque<rv::VulkanDebugMessage> rv::DebugMessenger::staticMessages;
+std::mutex rv::DebugMessenger::staticMutex;
 #else
 static constexpr bool debugLogger = false;
 #include <iostream>
@@ -83,6 +85,11 @@ VkBool32 rv::DebugMessenger::Callback(VkDebugUtilsMessageSeverityFlagBitsEXT sev
 		std::lock_guard guard(*messenger.mutex);
 		messenger.messages.push_back(message);
 	}
+	else
+	{
+		std::lock_guard guard(staticMutex);
+		staticMessages.push_back(message);
+	}
 
 #ifdef RV_DEBUG_LOGGER
 	debug.Log(utf16_message, Convert(severity));
@@ -118,16 +125,97 @@ rv::Severity rv::DebugMessenger::Convert(VkDebugUtilsMessageSeverityFlagBitsEXT 
 rv::Result rv::DebugMessenger::CheckResult()
 {
 #ifdef RV_DEBUG_LOGGER
-	Result worst;
-	for (const auto& message : messages)
+	if (!messages.empty())
 	{
-		Result result = message.Result();
-		if (result.severity() > worst.severity())
-			worst = result;
+		Result worst;
+		std::lock_guard guard(*mutex);
+		for (const auto& message : messages)
+		{
+			Result result = message.Result();
+			if (result.severity() > worst.severity())
+				worst = result;
+		}
+		return worst;
 	}
-	return worst;
+	if (staticMessages.empty())
+		return {};
+	else
+	{
+		Result worst;
+		std::lock_guard guard(staticMutex);
+		for (const auto& message : staticMessages)
+		{
+			Result result = message.Result();
+			if (result.severity() > worst.severity())
+				worst = result;
+		}
+		return worst;
+	}
 #else
 	return success;
+#endif
+}
+
+rv::VulkanDebugMessage rv::DebugMessenger::GetNextMessage()
+{
+#ifdef RV_DEBUG_LOGGER
+	if (!messages.empty())
+	{
+		std::lock_guard guard(*mutex);
+		VulkanDebugMessage message = std::move(messages.front());
+		messages.pop_front();
+		return message;
+	}
+	if (staticMessages.empty())
+		return {};
+	else
+	{
+		std::lock_guard guard(staticMutex);
+		VulkanDebugMessage message = std::move(staticMessages.front());
+		staticMessages.pop_front();
+		return message;
+	}
+#else
+	return {};
+#endif
+}
+
+rv::Result rv::DebugMessenger::CheckStaticResult()
+{
+#ifdef RV_DEBUG_LOGGER
+	if (staticMessages.empty())
+		return {};
+	else
+	{
+		Result worst;
+		std::lock_guard guard(staticMutex);
+		for (const auto& message : staticMessages)
+		{
+			Result result = message.Result();
+			if (result.severity() > worst.severity())
+				worst = result;
+		}
+		return worst;
+	}
+#else
+	return success;
+#endif
+}
+
+rv::VulkanDebugMessage rv::DebugMessenger::GetNextStaticMessage()
+{
+#ifdef RV_DEBUG_LOGGER
+	if (staticMessages.empty())
+		return {};
+	else
+	{
+		std::lock_guard guard(staticMutex);
+		VulkanDebugMessage message = std::move(staticMessages.front());
+		staticMessages.pop_front();
+		return message;
+	}
+#else
+	return {};
 #endif
 }
 
@@ -139,4 +227,14 @@ rv::Result rv::VulkanDebugMessage::Result() const
 rv::utf16_string rv::VulkanDebugMessage::Describe() const
 {
 	return message;
+}
+
+bool rv::VulkanDebugMessage::Valid() const
+{
+	return !message.empty();
+}
+
+rv::VulkanDebugMessage::operator bool() const
+{
+	return Valid();
 }

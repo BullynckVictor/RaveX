@@ -69,6 +69,7 @@ namespace rv
 			if (first)
 				delete first;
 			first = nullptr;
+			last = nullptr;
 		}
 
 	private:

@@ -10,3 +10,8 @@ rv::Result rv::Engine::Create(Engine& engine)
 
 	return result;
 }
+
+void rv::Engine::Release()
+{
+	graphics.Release();
+}

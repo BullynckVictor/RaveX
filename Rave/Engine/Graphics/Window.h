@@ -3,6 +3,7 @@
 #include "Engine/Utility/Result.h"
 #include "Engine/Utility/String.h"
 #include "Engine/Utility/Vector.h"
+#include "Engine/Graphics/Swapchain.h"
 #include <map>
 #include <mutex>
 
@@ -61,7 +62,7 @@ namespace rv
 		Window& operator= (const Window&) = delete;
 		Window& operator= (Window&&) noexcept = default;
 
-		static Result Create(Window& window, Descriptor&& descriptor = {});
+		static Result Create(Window& window, const Device& device, Descriptor&& descriptor = {});
 
 		Result Render();
 
@@ -104,5 +105,10 @@ namespace rv
 		bool updatedTitle = false;
 		std::unique_ptr<std::mutex> mutex;
 		bool drawn = false;
+		Swapchain swap;
+		const Device* device = nullptr;
+
+		friend struct Surface;
+		friend struct Swapchain;
 	};
 }

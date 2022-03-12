@@ -76,7 +76,7 @@ rv::DeviceExtensions::DeviceExtensions()
 
 std::vector<const char*> rv::DeviceExtensions::DefaultExtensions()
 {
-	return std::vector<const char*>();
+	return { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 }
 
 bool rv::DeviceExtensions::Supported(const PhysicalDevice& physical) const
@@ -90,7 +90,7 @@ bool rv::DeviceExtensions::Supported(const PhysicalDevice& physical) const
 		return false;
 
 	std::vector<VkExtensionProperties> available(count);
-	result = vkEnumerateDeviceExtensionProperties(physical.device, nullptr, &count, nullptr);
+	result = vkEnumerateDeviceExtensionProperties(physical.device, nullptr, &count, available.data());
 	if (result.failed())
 		return false;
 
@@ -117,14 +117,14 @@ rv::DeviceRater::DeviceRater()
 	optionalFeatures(),
 	propertiesRater(DefaultPropertiesRater)
 {
-	queueFinders.reserve(2);
-	queueFinders.emplace_back(new DeviceQueueFlagFinder(VK_QUEUE_GRAPHICS_BIT));
-	queueFinders.emplace_back(new DeviceQueueFlagFinder(VK_QUEUE_COMPUTE_BIT));
 }
 
 u64 rv::DeviceRater::Rate(const PhysicalDevice& device) const
 {
 	u64 rating = 0;
+
+	if (!extensions.Supported(device) || !validation.Supported(device))
+		return 0;
 
 	for (const auto& finder : queueFinders)
 	{
@@ -215,12 +215,35 @@ rv::u64 rv::DefaultPropertiesRater(const VkPhysicalDeviceProperties& properties)
 	return score;
 }
 
+rv::Device::Device(Device&& rhs) noexcept
+	:
+	device(move_ptr(rhs.device)),
+	physical(std::move(rhs.physical)),
+	graphics(rhs.graphics),
+	compute(rhs.compute),
+	queueCounts(std::move(rhs.queueCounts)),
+	instance(move_ptr(rhs.instance))
+{
+}
+
 rv::Device::~Device()
 {
 	Release();
 }
 
-rv::Result rv::Device::Create(Device& device, const Instance& instance, const DeviceRater& rater, const DeviceValidationLayers& validation, const DeviceExtensions& extensions)
+rv::Device& rv::Device::operator=(Device&& rhs) noexcept
+{
+	Release();
+	device = move_ptr(rhs.device);
+	physical = std::move(rhs.physical);
+	graphics = rhs.graphics;
+	compute = rhs.compute;
+	queueCounts = std::move(rhs.queueCounts);
+	instance = move_ptr(rhs.instance);
+	return *this;
+}
+
+rv::Result rv::Device::Create(Device& device, const Instance& instance, const DeviceRater& rater)
 {
 	rv_result;
 	device.instance = &instance;
@@ -241,6 +264,9 @@ rv::Result rv::Device::Create(Device& device, const Instance& instance, const De
 	rif_check_condition_msg(best, strvalid(u"No suitable Vulkan devices found"));
 	device.physical = *best;
 
+	device.validation = rater.validation;
+	device.extensions = rater.extensions;
+
 	VkPhysicalDeviceFeatures features = {};
 	VkBool32* deviceFeatures = reinterpret_cast<VkBool32*>(&features);
 	const VkBool32* required = reinterpret_cast<const VkBool32*>(&rater.requiredFeatures);
@@ -250,19 +276,31 @@ rv::Result rv::Device::Create(Device& device, const Instance& instance, const De
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.enabledLayerCount = safe_cast<u32>(validation.layers.size());
-	createInfo.ppEnabledLayerNames = validation.layers.data();
-	createInfo.enabledExtensionCount = safe_cast<u32>(extensions.extensions.size());
-	createInfo.ppEnabledExtensionNames = extensions.extensions.data();
+	createInfo.enabledLayerCount = safe_cast<u32>(rater.validation.layers.size());
+	createInfo.ppEnabledLayerNames = rater.validation.layers.data();
+	createInfo.enabledExtensionCount = safe_cast<u32>(rater.extensions.extensions.size());
+	createInfo.ppEnabledExtensionNames = rater.extensions.extensions.data();
 	createInfo.pEnabledFeatures = &features;
 
-	std::vector<float> queuePriorities(rater.queueFinders.size(), 1.0f);
+	std::vector<float> queuePriorities(2 + rater.queueFinders.size(), 1.0f);
 	std::vector<VkDeviceQueueCreateInfo> queues;
+	device.queueCounts.resize(device.physical.queueFamilies.size());
 	for (u32 family = 0; family < safe_cast<u32>(device.physical.queueFamilies.size()); ++family)
 	{
+		const auto& properties = device.physical.queueFamilies[family];
 		u32 fitting = 0;
+		if (device.graphics.family == Optional<u32>::invalid_value && (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+		{
+			device.graphics.family = family;
+			++fitting;
+		}
+		if (device.compute.family == Optional<u32>::invalid_value && (properties.queueFlags & VK_QUEUE_COMPUTE_BIT))
+		{
+			device.compute.family = family;
+			++fitting;
+		}
 		for (const auto& finders : rater.queueFinders)
-			if (finders->Fits(device.physical.queueFamilies[family], family))
+			if (finders->Fits(properties, family))
 				++fitting;
 		if (fitting)
 		{
@@ -281,25 +319,10 @@ rv::Result rv::Device::Create(Device& device, const Instance& instance, const De
 	result = rv_check_vkr_msg(vkCreateDevice(device.physical.device, &createInfo, nullptr, &device.device), strvalid(u"Unable to create device"));
 	if (result.succeeded())
 	{
-		for (u32 family = 0; family < safe_cast<u32>(device.physical.queueFamilies.size()); ++family)
-		{
-			bool graphics = false;
-			bool compute = false;
-			if (device.physical.queueFamilies[family].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-				graphics = true;
-			if (device.physical.queueFamilies[family].queueFlags & VK_QUEUE_COMPUTE_BIT)
-				compute = true;
-			if (graphics && compute)
-			{
-				device.graphics = device.GetQueue(family, 0);
-				device.compute  = device.GetQueue(family, 1);
-			}
-			else if (graphics)
-				device.graphics = device.GetQueue(family);
-			else if (compute)
-				device.compute  = device.GetQueue(family);
-		}
-
+		if (device.graphics.family != Optional<u32>::invalid_value)
+			device.graphics = device.GetQueue(device.graphics.family);
+		if (device.compute.family != Optional<u32>::invalid_value)
+			device.compute = device.GetQueue(device.compute.family);
 		rv_logstr(strvalid(u"Created Device \""), device.physical.properties.deviceName, u'\"');
 	}
 	return result;
@@ -308,9 +331,19 @@ rv::Result rv::Device::Create(Device& device, const Instance& instance, const De
 void rv::Device::Release()
 {
 	release_vk(device, instance);
+	instance = nullptr;
 }
 
-rv::DeviceQueue rv::Device::GetQueue(u32 family, u32 index)
+rv::DeviceQueue rv::Device::GetQueue(u32 family)
+{
+	DeviceQueue queue;
+	queue.family = family;
+	queue.index = (queueCounts[family]++ % physical.queueFamilies[family].queueCount);
+	vkGetDeviceQueue(device, family, queue.index, &queue.queue);
+	return queue;
+}
+
+rv::DeviceQueue rv::Device::GetQueue(u32 family, u32 index) const
 {
 	DeviceQueue queue;
 	queue.family = family;

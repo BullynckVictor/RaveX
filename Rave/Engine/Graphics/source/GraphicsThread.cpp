@@ -18,6 +18,7 @@ rv::GraphicsThread::~GraphicsThread()
 	{
 		wakeUpSignal.notify_one();
 		thread.join();
+		int bp = 0;
 	}
 }
 
@@ -87,7 +88,7 @@ void rv::GraphicsThread::Task()
 				must_create = !createInfo.empty();
 				for (auto& create : createInfo)
 				{
-					result = create.create(create.renderer, create.descriptor.Data());
+					result = create.create(create.renderer, create.device, create.descriptor.Data());
 					if (result.failed())
 						PostEvent(FailedResult(result));
 				}

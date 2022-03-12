@@ -58,6 +58,8 @@ namespace rv
 		VkPhysicalDeviceFeatures optionalFeatures;
 		DevicePropertiesRater propertiesRater;
 		std::vector<std::unique_ptr<DeviceQueueFinder>> queueFinders;
+		DeviceValidationLayers validation;
+		DeviceExtensions extensions;
 	};
 
 	struct PhysicalDevice
@@ -84,24 +86,88 @@ namespace rv
 	struct Device
 	{
 		Device() = default;
+		Device(const Device&) = delete;
+		Device(Device&& rhs) noexcept;
 		~Device();
 
-		static Result Create(
-			Device& device, 
-			const Instance& instance, 
-			const DeviceRater& rater = {}, 
-			const DeviceValidationLayers& validation = {},
-			const DeviceExtensions& extensions = {}
-		);
+		Device& operator= (const Device&) = delete;
+		Device& operator= (Device&& rhs) noexcept;
+
+		static Result Create(Device& device, const Instance& instance, const DeviceRater& rater = {});
 
 		void Release();
 
-		DeviceQueue GetQueue(u32 family, u32 index = 0);
+		DeviceQueue GetQueue(u32 family);
+		DeviceQueue GetQueue(u32 family, u32 index) const;
 
 		VkDevice device = VK_NULL_HANDLE;
 		PhysicalDevice physical;
 		DeviceQueue graphics;
 		DeviceQueue compute;
+		std::vector<u32> queueCounts;
+		DeviceValidationLayers validation;
+		DeviceExtensions extensions;
 		const Instance* instance = nullptr;
 	};
+
+	template<typename T>
+	void release_vk(T*& object, const Device& device)
+	{
+		if (object)
+		{
+			destroy_vk(object, device.device, VK_NULL_HANDLE);
+			object = VK_NULL_HANDLE;
+		}
+	}
+
+	template<typename T>
+	void release_vk(T*& object, const Device& device, const Instance& instance)
+	{
+		if (object)
+		{
+			destroy_vk(object, device.device, instance.instance);
+			object = VK_NULL_HANDLE;
+		}
+	}
+	template<typename T>
+	void release_vk(T*& object, const Device& device, const Instance* instance)
+	{
+		if (object)
+		{
+			if (instance)
+				destroy_vk(object, device.device, instance->instance);
+			object = VK_NULL_HANDLE;
+		}
+	}
+	template<typename T>
+	void release_vk(T*& object, const Device* device)
+	{
+		if (object)
+		{
+			if (device)
+				destroy_vk(object, device->device, VK_NULL_HANDLE);
+			object = VK_NULL_HANDLE;
+		}
+	}
+
+	template<typename T>
+	void release_vk(T*& object, const Device* device, const Instance& instance)
+	{
+		if (object)
+		{
+			if (device)
+				destroy_vk(object, device->device, instance.instance);
+			object = VK_NULL_HANDLE;
+		}
+	}
+	template<typename T>
+	void release_vk(T*& object, const Device* device, const Instance* instance)
+	{
+		if (object)
+		{
+			if (device && instance)
+				destroy_vk(object, device->device, instance->instance);
+			object = VK_NULL_HANDLE;
+		}
+	}
 }

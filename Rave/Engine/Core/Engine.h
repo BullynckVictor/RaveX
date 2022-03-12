@@ -10,6 +10,7 @@ namespace rv
 		Engine() = default;
 
 		static Result Create(Engine& engine);
+		void Release();
 
 		AudioEngine audio;
 		GraphicsEngine graphics;

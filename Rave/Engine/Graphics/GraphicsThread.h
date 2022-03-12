@@ -37,13 +37,14 @@ namespace rv
 		template<Renderer R>
 		void Set(R* renderer, const typename R::Descriptor& descriptor) { this->renderer = renderer; this->descriptor = std::move(Any(descriptor)); create = detail::make_create_function<R>; }
 		template<Renderer R>
-		static RendererCreateInfo Make(R* renderer, typename R::Descriptor&& descriptor) { RendererCreateInfo info; info.Set<R>(renderer, std::move(descriptor)); return info; }
+		static RendererCreateInfo Make(R* renderer, const Device& device, typename R::Descriptor&& descriptor) { RendererCreateInfo info; info.device = &device; info.Set<R>(renderer, std::move(descriptor)); return info; }
 		template<Renderer R>
-		static RendererCreateInfo Make(R* renderer, const typename R::Descriptor& descriptor) { RendererCreateInfo info; info.Set<R>(renderer, descriptor); return info; }
+		static RendererCreateInfo Make(R* renderer, const Device& device, const typename R::Descriptor& descriptor) { RendererCreateInfo info; info.device = &device; info.Set<R>(renderer, descriptor); return info; }
 
 		CreateFunction create = nullptr;
 		Any descriptor;
 		void* renderer = nullptr;
+		const Device* device = nullptr;
 	};
 
 	class GraphicsThread : public EventSource
@@ -53,7 +54,7 @@ namespace rv
 		~GraphicsThread();
 
 		template<typename R>
-		R* AddRenderer(typename R::Descriptor&& descriptor)
+		R* AddRenderer(const Device& device, typename R::Descriptor&& descriptor)
 		{
 			R* r = nullptr;
 			if (MultiThreaded())
@@ -64,7 +65,7 @@ namespace rv
 					std::lock_guard guard2(queueMutex);
 					empty = renderers.Empty();
 					r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
-					createInfo.push_back(RendererCreateInfo::Make<R>(r, std::move(descriptor)));
+					createInfo.push_back(RendererCreateInfo::Make<R>(r, device, std::move(descriptor)));
 				}
 				if (empty)
 					wakeUpSignal.notify_one();
@@ -72,14 +73,14 @@ namespace rv
 			else
 			{
 				r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
-				Result result = R::Create(*r, std::move(descriptor));
+				Result result = R::Create(*r, device, std::move(descriptor));
 				if (result.failed())
 					PostEvent(FailedResult(result));
 			}
 			return r;
 		}
 		template<typename R>
-		R* AddRenderer(const typename R::Descriptor& descriptor)
+		R* AddRenderer(const Device& device, const typename R::Descriptor& descriptor)
 		{
 			R* r = nullptr;
 			if (MultiThreaded())
@@ -90,7 +91,7 @@ namespace rv
 					std::lock_guard guard2(queueMutex);
 					empty = renderers.Empty();
 					r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
-					createInfo.push_back(RendererCreateInfo::Make<R>(r, descriptor));
+					createInfo.push_back(RendererCreateInfo::Make<R>(r, device, descriptor));
 				}
 				if (empty)
 					wakeUpSignal.notify_one();
@@ -98,7 +99,7 @@ namespace rv
 			else
 			{
 				r = renderers.PushEntry<R>(RendererInfo::Make<R>(), R());
-				Result result = R::Create(*r, descriptor);
+				Result result = R::Create(*r, device, descriptor);
 				if (result.failed())
 					PostEvent(FailedResult(result));
 			}

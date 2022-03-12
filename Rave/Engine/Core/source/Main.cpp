@@ -5,6 +5,7 @@
 #include "Engine/Utility/ResultHandler.h"
 #include "Engine/Utility/String.h"
 #include "Engine/Core/AutoStartupClean.h"
+#include "Engine/Graphics/DebugMessenger.h"
 
 using namespace rv;
 
@@ -104,7 +105,23 @@ int main()
 		}
 		else
 		{
-			return EXIT_SUCCESS;
+			if constexpr (DebugMessenger::enabled)
+			{
+				result = DebugMessenger::CheckStaticResult();
+				if (result.fatal())
+				{
+					message_box(result);
+					return EXIT_FAILURE;
+				}
+				else
+				{
+					return EXIT_SUCCESS;
+				}
+			}
+			else
+			{
+				return EXIT_SUCCESS;
+			}
 		}
 	}
 	catch (const ResultException& e)

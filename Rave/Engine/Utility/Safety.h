@@ -11,7 +11,7 @@ namespace rv
 		static constexpr T2 signed_cast(const T2& source)
 		{
 			if constexpr (std::is_signed_v<T2> && std::is_unsigned_v<T1>)
-				return std::max(0, source);
+				return std::max((T2)0, source);
 			else
 				return source;
 		}

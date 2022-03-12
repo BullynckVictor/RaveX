@@ -44,7 +44,12 @@ namespace rv
 	struct Instance
 	{
 		Instance() = default;
+		Instance(const Instance&) = delete;
+		Instance(Instance&& rhs) noexcept;
 		~Instance();
+
+		Instance& operator= (const Instance&) = delete;
+		Instance& operator= (Instance&& rhs) noexcept;
 		
 		static Result Create(
 			Instance& instance, 

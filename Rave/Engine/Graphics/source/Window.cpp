@@ -45,14 +45,16 @@ rv::WindowDescriptor::WindowDescriptor()
 rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, WindowOptions options)
 	:
 	title(title),
-	options(options)
+	options(options),
+	position(std::numeric_limits<int>::min())
 {
 }
 
 rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, Flags<WindowOptions> options)
 	:
 	title(title),
-	options(options)
+	options(options),
+	position(std::numeric_limits<int>::min())
 {
 }
 
@@ -60,7 +62,8 @@ rv::WindowDescriptor::WindowDescriptor(const utf16_string& title, const Size& si
 	:
 	title(title),
 	size(size),
-	options(options)
+	options(options),
+	position(std::numeric_limits<int>::min())
 {
 }
 
@@ -77,7 +80,8 @@ rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Size& size, F
 	:
 	title(std::move(title)),
 	size(size),
-	options(options)
+	options(options),
+	position(std::numeric_limits<int>::min())
 {
 }
 
@@ -93,14 +97,16 @@ rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, const Point& positi
 rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, Flags<WindowOptions> options)
 	:
 	title(std::move(title)),
-	options(options)
+	options(options),
+	position(std::numeric_limits<int>::min())
 {
 }
 
 rv::WindowDescriptor::WindowDescriptor(utf16_string&& title, WindowOptions options)
 	:
 	title(title),
-	options(options)
+	options(options),
+	position(std::numeric_limits<int>::min())
 {
 }
 
@@ -115,7 +121,7 @@ rv::Window::~Window()
 	Close();
 }
 
-rv::Result rv::Window::Create(Window& window, Descriptor&& descriptor)
+rv::Result rv::Window::Create(Window& window, const Device& device, Descriptor&& descriptor)
 {
 	rv_result;
 
@@ -124,42 +130,39 @@ rv::Result rv::Window::Create(Window& window, Descriptor&& descriptor)
 
 	window.title = std::move(descriptor.title);
 	window.dpi = GetDpiForSystem();
-	window.size = descriptor.size;
-	window.position = descriptor.position;
 	window.options = descriptor.options;
 	window.styleEx = WS_EX_APPWINDOW;
 	window.style = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU;
+	window.device = &device;
 	if (descriptor.options.contain(RV_WINDOW_RESIZEABLE))
 	{
 		window.style |= WS_MAXIMIZEBOX;
 		window.style |= WS_THICKFRAME;
 	}
 
-	Extent<2, int> size = CW_USEDEFAULT;
-	Point position = CW_USEDEFAULT;
-	
-	RECT rect{};
-	rect.left = safe_cast<long>(window.position.x);
-	rect.top = safe_cast<long>(window.position.y);
-	rect.right = safe_cast<long>(window.position.x + safe_cast<int>(window.size.width));
-	rect.bottom = safe_cast<long>(window.position.y + safe_cast<int>(window.size.height));
-	rif_check_last_msg(AdjustWindowRectExForDpi(&rect, window.style, false, window.styleEx, window.dpi), strvalid(u8"Unable to adjust window rectangle"));
-	
-	size.width = window.size.width ? (rect.right - rect.left) : CW_USEDEFAULT;
-	size.height = window.size.height ? (rect.bottom - rect.top) : CW_USEDEFAULT;
-	position.x = window.position.x ? rect.left : CW_USEDEFAULT;
-	position.y = window.position.y ? rect.top : CW_USEDEFAULT;
+	Point position;
+	position.x = window.position.x == std::numeric_limits<int>::min() ? 0 : window.position.x;
+	position.y = window.position.y == std::numeric_limits<int>::min() ? 0 : window.position.y;
 
-	window.position *= window.dpi / 96;
-	window.size *= window.dpi / 96;
+	RECT rect{};
+	rect.left = safe_cast<long>(position.x);
+	rect.top = safe_cast<long>(position.y);
+	rect.right = safe_cast<long>(position.x + descriptor.size.x);
+	rect.bottom = safe_cast<long>(position.y + descriptor.size.y);
+	rif_check_last_msg(AdjustWindowRectExForDpi(&rect, window.style, false, window.styleEx, 120), strvalid(u8"Unable to adjust window rectangle"));
+	
+	window.position.x = descriptor.position.x == std::numeric_limits<int>::min() ? CW_USEDEFAULT : rect.left;
+	window.position.y = descriptor.position.y == std::numeric_limits<int>::min() ? CW_USEDEFAULT : rect.top;
+	window.size.width = descriptor.size.x ? safe_cast<uint>(rect.right - rect.left) : CW_USEDEFAULT;
+	window.size.height = descriptor.size.y ? safe_cast<uint>(rect.bottom - rect.top) : CW_USEDEFAULT;
 
 	rif_check_last_msg(window.hwnd = CreateWindowEx(
 		window.styleEx,
 		reinterpret_cast<const wchar_t*>(windowClass.Identifier()),
 		window.title.c_str<wchar_t>(),
 		window.style,
-		position.x, position.y,
-		size.width, size.height,
+		window.position.x, window.position.y,
+		(int)window.size.width, (int)window.size.height,
 		nullptr, nullptr,
 		windowClass.Instance(),
 		&window
@@ -331,13 +334,18 @@ LRESULT rv::Window::WindowProc(HWND, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 		case WM_SIZE:
 		{
-			if (wParam == SIZE_MINIMIZED)
-				minimized = true;
-			else
-				minimized = false;
-
 			size.width = LOWORD(lParam);
 			size.height = HIWORD(lParam);
+
+			if (wParam == SIZE_MINIMIZED)
+			{
+				minimized = true;
+			}
+			else
+			{
+				minimized = false;
+				SetResult(Swapchain::Create(swap, *device, *this));
+			}
 		}
 		return 0;
 	}

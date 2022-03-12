@@ -6,6 +6,7 @@ rv::Result rv_main()
 {
 	rv_result;
 
+
 	rv::Engine engine;
 	rv_rif(rv::Engine::Create(engine));
 	rv::EventListener threadListener(engine.graphics.thread);
@@ -14,10 +15,17 @@ rv::Result rv_main()
 
 	engine.graphics.thread.Await();
 
-	window.SetTitle(u"Hello from the main thread!");
+	const auto& size = window.Size();
+	window.SetTitle(rv::str16(size.width, " x ", size.height));
+	auto prev = size;
 	while (window.Open())
 	{
 		engine.graphics.thread.RenderSingleThreaded();
+		if (size != prev)
+		{
+			prev = size;
+			window.SetTitle(rv::str16(size.width, " x ", size.height));
+		}
 		while (rv::Event e = threadListener.GetEvent())
 			if (e.IsType<rv::FailedResult>())
 				return e.Get<rv::FailedResult>().result;
@@ -25,5 +33,6 @@ rv::Result rv_main()
 			rv_rif(engine.graphics.CheckDebug());
 	}
 
+	engine.graphics.thread.Await();
 	return result;
 }

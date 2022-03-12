@@ -184,6 +184,7 @@
     <ClCompile Include="Graphics\source\GraphicsEngine.cpp" />
     <ClCompile Include="Graphics\source\GraphicsThread.cpp" />
     <ClCompile Include="Graphics\source\Instance.cpp" />
+    <ClCompile Include="Graphics\source\Swapchain.cpp" />
     <ClCompile Include="Graphics\source\Window.cpp" />
     <ClCompile Include="Utility\source\File.cpp" />
     <ClCompile Include="Utility\source\Logger.cpp" />
@@ -206,6 +207,7 @@
     <ClInclude Include="Graphics\GraphicsThread.h" />
     <ClInclude Include="Graphics\Instance.h" />
     <ClInclude Include="Graphics\Renderer.h" />
+    <ClInclude Include="Graphics\Swapchain.h" />
     <ClInclude Include="Graphics\Vulkan.h" />
     <ClInclude Include="Graphics\Window.h" />
     <ClInclude Include="Rave.h" />

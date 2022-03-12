@@ -14,7 +14,7 @@ rv::Result rv::GraphicsEngine::Create(GraphicsEngine& graphics)
 
 rv::Window& rv::GraphicsEngine::CreateWindowRenderer(WindowDescriptor&& descriptor)
 {
-	return *thread.AddRenderer<Window>(std::move(descriptor));
+	return *thread.AddRenderer<Window>(device, std::move(descriptor));
 }
 
 rv::Window& rv::GraphicsEngine::CreateWindowRenderer(const utf16_string& title, WindowOptions options) { return CreateWindowRenderer(title, Flags<WindowOptions>(options)); }
@@ -29,4 +29,11 @@ rv::Window& rv::GraphicsEngine::CreateWindowRenderer(utf16_string&& title, Windo
 rv::Result rv::GraphicsEngine::CheckDebug()
 {
 	return debug.CheckResult();
+}
+
+void rv::GraphicsEngine::Release()
+{
+	device.Release();
+	debug.Release();
+	instance.Release();
 }
